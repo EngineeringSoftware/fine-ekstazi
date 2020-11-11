@@ -27,6 +27,7 @@ public final class Names {
     /** Configuration file name (in home/user directory) */
     public static final String EKSTAZI_CONFIG_FILE = ".ekstazirc";
     public static final String EKSTAZI_ROOT_DIR_NAME = ".ekstazi";
+    public static final String CHANGE_TYPES_DIR_NAME = "objs";
 
     /** Directory (inside root directory) for test results */
     public static final String TEST_RESULTS_DIR_NAME = "test-results";

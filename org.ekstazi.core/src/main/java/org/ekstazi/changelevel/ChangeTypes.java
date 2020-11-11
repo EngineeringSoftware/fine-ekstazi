@@ -57,6 +57,36 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         return o;
     }
 
+    public static ChangeTypes fromFile(String fileName) throws IOException,ClassNotFoundException{
+        ChangeTypes c = null;
+        FileInputStream fileIn = new FileInputStream(fileName);
+        ObjectInputStream in = new ObjectInputStream(fileIn);
+        c= (ChangeTypes) in.readObject();
+        in.close();
+        fileIn.close();
+        return c;
+    }
+
+    public static void toFile(String fileName, ChangeTypes c){
+        try {
+            File file = new File(fileName);
+            if (!file.exists()){
+                File dir = new File(file.getParent());
+                dir.mkdirs();
+                file.createNewFile();
+            }
+            FileOutputStream fileOut =
+                    new FileOutputStream(file);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            System.out.println("[log] ChangeTypes: executed");
+            out.writeObject(c);
+            out.close();
+            fileOut.close();
+        } catch (IOException i) {
+            i.printStackTrace();
+        }
+    }
+
     /** Write the object to a Base64 string. */
     public static String toString( Serializable o ) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

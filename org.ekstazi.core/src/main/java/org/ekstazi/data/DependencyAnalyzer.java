@@ -18,20 +18,22 @@ package org.ekstazi.data;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.ekstazi.Config;
+import org.ekstazi.Names;
 import org.ekstazi.changelevel.ChangeTypes;
+import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.log.Log;
 import org.ekstazi.monitor.CoverageMonitor;
 import org.ekstazi.research.Research;
+import org.ekstazi.util.FileUtil;
 import org.ekstazi.util.LRUMap;
 
 /**
@@ -316,6 +318,26 @@ public final class DependencyAnalyzer {
         // Check hash
         String newHash = hasher.hashURL(urlExternalForm);
         modified = !newHash.equals(regDatum.getHash());
+        // TODO:
+        if (modified && urlExternalForm.contains("target")) {
+            String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
+            ChangeTypes curChangeTypes = new ChangeTypes();
+            try {
+                ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
+                curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
+                        new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
+                if (preChangeTypes.equals(curChangeTypes)) {
+                    modified = false;
+                }
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            } finally{
+                if (modified){
+                    ChangeTypes.toFile(fileName, curChangeTypes);
+                }
+            }
+        }
+
 
         mUrlExternalForm2Modified.put(urlExternalForm, modified);
         return modified;

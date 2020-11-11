@@ -16,16 +16,18 @@
 
 package org.ekstazi.data;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.*;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
 import org.ekstazi.Config;
+import org.ekstazi.Names;
+import org.ekstazi.changelevel.ChangeTypes;
+import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.log.Log;
+import org.ekstazi.util.FileUtil;
 
 /**
  * IO API for storing/reading dependencies. Currently there is no
@@ -133,6 +135,27 @@ public abstract class Storer {
         new File(dirName).mkdir();
         String fullName = className + '.' + methodName;
         save(openFileWrite(dirName, fullName, className, methodName), regData);
+
+        // TODO: Enusre that the directory for ChangeTypes objexts exists.
+        String ctDirName = dirName + "/" + Names.CHANGE_TYPES_DIR_NAME;
+        new File(ctDirName).mkdir();
+        for (RegData r : regData){
+            String urlExternalForm = r.getURLExternalForm();
+            if (urlExternalForm.contains("target")) { // ignore third library
+                String filePath = FileUtil.urlToObjFilePath(urlExternalForm);
+                if (!(new File(filePath).exists())) {
+                    try {
+//                        System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
+                        ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
+                                new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
+//                        System.out.println("[log] curClassName: " + curChangeTypes.curClass);
+                        ChangeTypes.toFile(filePath, curChangeTypes);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     /**

@@ -39,12 +39,27 @@ import java.util.List;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
+import org.ekstazi.Names;
 import org.ekstazi.log.Log;
 
 /**
  * Utility methods for manipulating files.
  */
 public class FileUtil {
+
+    public static String urlToObjFilePath(String urlExternalForm){
+        int index = urlExternalForm.indexOf("target");
+        urlExternalForm = urlExternalForm.substring(index);
+        StringBuffer sb = new StringBuffer();
+        String[] array = urlExternalForm.split("/");
+        for (int i = 2; i < array.length-1; i++){
+            sb.append(array[i]);
+            sb.append(".");
+        }
+        sb.append("ser");
+        return System.getProperty("user.dir") + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+                Names.CHANGE_TYPES_DIR_NAME + "/" + sb.toString();
+    }
 
     /**
      * Loads bytes of the given file.

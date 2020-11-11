@@ -16,11 +16,17 @@
 
 package org.ekstazi.check;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 
+import org.ekstazi.changelevel.ChangeTypes;
+import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.data.RegData;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
+import org.ekstazi.util.FileUtil;
+import org.ekstazi.Names;
 
 abstract class AbstractCheck {
 
@@ -70,6 +76,28 @@ abstract class AbstractCheck {
         // Check hash.
         String newHash = hasher.hashURL(urlExternalForm);
         boolean anyDiff = !newHash.equals(regDatum.getHash());
+        // TODO: if checksum of ekstazi differs, compare ChangeTypes
+        if (anyDiff && urlExternalForm.contains("target")) {
+            String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
+            System.out.println("[log] AbstractCheck hasHashChanged: " + fileName);
+            ChangeTypes curChangeTypes = new ChangeTypes();
+            try {
+                ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
+                curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
+                        new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
+                if (preChangeTypes.equals(curChangeTypes)){
+                    return false;
+                }
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (anyDiff){
+                    ChangeTypes.toFile(fileName, curChangeTypes);
+                }
+            }
+        }
         return anyDiff;
     }
+
+
 }
