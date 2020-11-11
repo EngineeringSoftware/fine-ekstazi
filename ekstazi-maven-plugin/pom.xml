@@ -5,7 +5,7 @@
   <parent>
     <artifactId>org.ekstazi.parent</artifactId>
     <groupId>org.ekstazi</groupId>
-    <version>5.3.0</version> <!-- EkstaziVersion -->
+    <version>5.4.0</version> <!-- EkstaziVersion -->
   </parent>
 
   <artifactId>ekstazi-maven-plugin</artifactId>
