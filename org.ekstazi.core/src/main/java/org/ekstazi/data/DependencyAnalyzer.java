@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.ekstazi.Config;
+import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.log.Log;
 import org.ekstazi.monitor.CoverageMonitor;
@@ -303,6 +304,8 @@ public final class DependencyAnalyzer {
     /**
      * Hashes file and compares with the old hash. If hashes are different,
      * return true; false otherwise
+     *
+     * If the hashes differ, then compare the ChangeTypes to avoid corner cases
      */
     private boolean hasHashChanged(Hasher hasher, RegData regDatum) {
         String urlExternalForm = regDatum.getURLExternalForm();
@@ -313,6 +316,7 @@ public final class DependencyAnalyzer {
         // Check hash
         String newHash = hasher.hashURL(urlExternalForm);
         modified = !newHash.equals(regDatum.getHash());
+
         mUrlExternalForm2Modified.put(urlExternalForm, modified);
         return modified;
     }

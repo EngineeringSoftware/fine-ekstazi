@@ -4,10 +4,12 @@ import org.ekstazi.asm.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.ekstazi.util.FileUtil;
+import static org.ekstazi.hash.BytecodeCleaner.removeDebugInfo;
 
 public class FineTunedBytecodeCleaner extends ClassVisitor {
 
@@ -284,38 +286,39 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     }
 
     static String INNER_ACCESS = "add_access"; // 1
-    //todo
-    static String ADD_BASE_CLASS = "add_base_class"; // 2
-    static String ADD_CLASS = "add_class";  // 3
-    static String ADD_CONSTRUCTOR = "add_constructor"; // 4
-    static String ADD_FIELD = "add_field"; // 5
-    static String ADD_INSTANCE_METHOD = "add_instance_method"; // 6
-    //todo
-    static String ADD_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 7
-    //todo
-    static String ADD_STATIC_INITIALIZED_BLOCK = "add_static_initialized_block";
-    static String ADD_STATIC_METHOD = "add_static_method"; // 8
-    //todo
-    static String CHANGE_MODIFIER_OF_FIELD = "change_modifier_of_field"; // 9
+
+    static String ADD_BASE_CLASS = "add base class"; // 2
+    static String ADD_CLASS = "add class";  // 3
+    static String REMOVE_CLASS = "remove class"; // 19
     static String CHANGE_BASE_CLASS = "change_base_class"; // 10
     static String CHANGE_CLASS_MODIFIER = "change_class_modifier"; // 11
-    static String CHANGE_CONSTRUCTOR = "change_constructor"; // 12
-    static String CHANGE_FIELD_DECLARATION = "change_field_declaration"; // 13
-    static String CHANGE_FIELD_INITIALIZATION = "change_field_initialization"; // 14
-    static String CHANGE_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 15
+
+    static String ADD_CONSTRUCTOR = "add_constructor"; // 4
+    static String REMOVE_CONSTRUCTOR = "remove_constructor";// 23
+
+    static String ADD_FIELD = "add_field"; // 5
+    static String REMOVE_FIELD = "remove field"; // 21
+    static String CHANGE_MODIFIER_OF_FIELD = "change_modifier_of_field"; // 9
+
+    static String ADD_INSTANCE_METHOD = "add_or_remove_instance_method"; // 6
+    static String REMOVE_INSTANCE_METHOD = "remove_instance_method"; // 22
+    static String ADD_STATIC_METHOD = "add_static_method"; // 8
+    static String REMOVE_STATIC_METHOD = "remove_static_method"; // 20
     static String CHANGE_INTERFACE = "change_interface"; // 16
     static String CHANGE_METHOD_EXCEPTION = "change_method_exception"; // 17
-    //todo
     static String PARAMETER_TYPE_SPECIALIZATION = "parameter_type_specialization"; // 18
-    static String REMOVE_CLASS = "remove_class"; // 19
-    static String REMOVE_STATIC_METHOD = "remove_static_method"; // 20
-    static String REMOVE_FIELD = "remove_field"; // 21
-    static String REMOVE_INSTANCE_METHOD = "remove_instance_method"; // 22
-    static String REMOVE_CONSTRUCTOR = "remove_constructor";// 23
-    static String USE_LAMBDA = "use_lambda"; // 24
-    static String METHOD = "Method";
-    static String MULMETHODS = "MulMethods";
-    static String OTHER = "Other";
+
+    static String ADD_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 7
+    static String ADD_STATIC_INITIALIZED_BLOCK = "add_static_initialized_block";
+
+    static String UPDATE_CONSTRUCTOR = "update constructor or update field initialization"; // 12
+    static String CHANGE_FIELD_INITIALIZATION = "change field initialization"; // 14
+    static String CHANGE_FIELD_DECLARATION = "change field declaration"; // 13
+
+    static String CHANGE_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 15
+    static String USE_LAMBDA = "use lambda"; // 24
+    static String METHOD = "method";
+    static String OTHER = "other";
 
     // invoke bash in java
     public static String bashCommand(String path, String command) {
@@ -326,7 +329,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             p.waitFor();
             BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
             String str = error.lines().collect(Collectors.joining());
-            if (str != null && !str.equals("")) {
+            if (!str.equals("")) {
                 System.out.println("error info: " + str);
             }
             BufferedReader b = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -344,27 +347,112 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return "";
     }
 
-    public static String getChangeLevel(String preClassPath, String curClassPath) {
+    public static Set<String> getChangeLevel(String preClassPath, String curClassPath) {
         Set<String> res = new HashSet<>();
         File pref = new File(preClassPath);
         File curf = new File(curClassPath);
         if (!pref.exists()) { // class file from previous build does not exist
-            return ADD_CLASS;
+            res.add(ADD_CLASS);
+            return res;
         } else if (!curf.exists()){ // class file from current build does not exist
-            return REMOVE_CLASS;
+            res.add(REMOVE_CLASS);
+            return res;
         } else {
             try {
                 byte[] preBytes = FileUtil.readFile(new File(preClassPath));
-                ChangeTypes preCleanBytes = removeDebugInfo(preBytes);
-
                 byte[] curBytes = FileUtil.readFile(new File(curClassPath));
-                ChangeTypes curCleanBytes = removeDebugInfo(curBytes);
+                byte[] preCleanBytes = org.ekstazi.hash.BytecodeCleaner.removeDebugInfo(preBytes);
+                byte[] curCleanBytes = org.ekstazi.hash.BytecodeCleaner.removeDebugInfo(curBytes);
 
-                System.out.println("diff: "+preCleanBytes.equals(curCleanBytes));
+                if (Arrays.equals(preCleanBytes, curCleanBytes)) { // if the bytecode from previous class and current
+                    // class file is the same
+                    res.add(OTHER);
+                    return res;
+                }
+
+                ChangeTypes preChangeTypes = removeDebugInfo(preBytes);
+                ChangeTypes curChangeTypes = removeDebugInfo(curBytes);
+
+                if (!preChangeTypes.superClass.equals(curChangeTypes.superClass)){
+                    res.add(CHANGE_BASE_CLASS);
+                }
+
+                TreeMap<String, String> newConstructor = preChangeTypes.constructorsMap;
+                TreeMap<String, String> oldConstructor = curChangeTypes.constructorsMap;
+
+                if (newConstructor.size() != oldConstructor.size()){
+                    res.add(UPDATE_CONSTRUCTOR);
+                }
+
+                for (String s : newConstructor.keySet()){
+                    if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
+                        res.add(UPDATE_CONSTRUCTOR);
+                    }
+                }
+
+                String instanceMethodChange = methodChange(preChangeTypes.instanceMethodMap, curChangeTypes.instanceMethodMap, false);
+                if (!instanceMethodChange.equals(OTHER))
+                    res.add(instanceMethodChange);
+                String staticMethodChange = methodChange(preChangeTypes.staticMethodMap, curChangeTypes.staticMethodMap, true);
+                if (!staticMethodChange.equals(OTHER)){
+                    res.add(staticMethodChange);
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        return res;
+    }
+
+    public static String methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean isStatic){
+        Iterator<Map.Entry<String, String>> iterator = newMethods.entrySet().iterator();
+        // Iterate over the HashMap
+        while (iterator.hasNext()) {
+            Map.Entry<String, String> entry = iterator.next();
+            if (oldMethods.containsKey(entry.getKey())){
+                if (!entry.getValue().equals( oldMethods.get(entry.getKey()) )){
+                    return METHOD;
+                }else{
+                    iterator.remove();
+                    oldMethods.remove(entry.getKey());
+                }
+            } else{
+                // rename
+                if (oldMethods.containsValue(entry.getValue())){
+                    iterator.remove();
+                    AtomicReference<String> oldSig = null;
+                    oldMethods.forEach((key, value) -> {
+                        if (value.equals(entry.getValue())) {
+                            oldSig.set(key);
+                        }
+                    });
+                    oldMethods.remove(oldSig.get());
+                }
+            }
+        }
+
+        if (oldMethods.size() == 0 && newMethods.size() == 0){
+            return OTHER;
+        }
+
+        // one methodmap is empty then the left must be added or deleted.
+        if (oldMethods.size() == 0){
+            if (!isStatic) {
+                return ADD_INSTANCE_METHOD;
+            }else{
+                return ADD_STATIC_METHOD;
+            }
+        }
+
+        if (newMethods.size() == 0){
+            if (!isStatic){
+                return REMOVE_INSTANCE_METHOD;
+            }else{
+                return REMOVE_STATIC_METHOD;
+            }
+        }
+
         return OTHER;
     }
 
@@ -388,7 +476,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 resultFolder.mkdirs();
             }
             //use json to store the result, here use the library Gson
-            Map<String, Map<String, String>> resLinkedHashMap = new LinkedHashMap<>();
+            Map<String, Map<String, Set<String>>> resLinkedHashMap = new LinkedHashMap<>();
             Gson gson = new GsonBuilder()
                     .setPrettyPrinting()
                     .create();
@@ -398,7 +486,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             String preSHA = shalist[0];
 
             for (int i = 1; i < shalist.length; i++) {
-                Map<String, String> jsonObject = new LinkedHashMap<>();
+                Map<String, Set<String>> jsonObject = new LinkedHashMap<>();
                 String curSHA = shalist[i];
                 // compare the difference of previous class file and current class file
                 bashCommand(projectPath, "git checkout " + preSHA);
@@ -420,35 +508,45 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 File curClassFolder = new File(projectPath + "/target/classes");
                 File curTestFolder = new File(projectPath + "/target/test-classes");
 
-                ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/classes"));
-                ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/test-classes"));
+                if (ChangeTypes.hierarchyGraph == null) {
+                    ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/classes"));
+                    ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/test-classes"));
+                    System.out.println(ChangeTypes.hierarchyGraph);
+                }
+
 
                 for (String curClassPath : ChangeTypes.listFiles(curClassFolder.getAbsolutePath())){
                     int index = curClassPath.lastIndexOf("target/classes");
                     String fileRelativePath = curClassPath.substring(index + "target/classes/".length());
                     String preClassPath = projectPath + "/preclasses/" + fileRelativePath;
-                    String level = getChangeLevel(preClassPath, curClassPath);
-//                    jsonObject.put(fileRelativePath, "class/method");
+                    Set<String> level = getChangeLevel(preClassPath, curClassPath);
+                    if (level.contains(OTHER)){
+                        continue;
+                    }
+                    jsonObject.put(fileRelativePath, level);
                 }
 
                 for (String curClassPath : ChangeTypes.listFiles(curTestFolder.getAbsolutePath())){
                     int index = curClassPath.lastIndexOf("target/test-classes");
                     String fileRelativePath = curClassPath.substring(index + "target/test-classes/".length());
                     String preClassPath = projectPath + "/pretestclasses/" + fileRelativePath;
-                    String level = getChangeLevel(preClassPath, curClassPath);
-//                    jsonObject.put(fileRelativePath, level);
-
+                    Set<String> level = getChangeLevel(preClassPath, curClassPath);
+                    if (level.contains(OTHER)){
+                        continue;
+                    }
+                    jsonObject.put(fileRelativePath, level);
                 }
 
                 resLinkedHashMap.put(curSHA, jsonObject);
+                System.out.println(jsonObject);
                 bashCommand(projectPath, "rm -rf preclasses");
                 bashCommand(projectPath, "rm -rf pretestclasses");
                 bashCommand(projectPath, "rm -rf target");
                 preSHA = curSHA;
             }
             // generate json file
-//            String res = gson.toJson(resLinkedHashMap, LinkedHashMap.class);
-//            System.out.println(res);
+            String res = gson.toJson(resLinkedHashMap, LinkedHashMap.class);
+            System.out.println(res);
 //            try {
 //                Files.write(Paths.get(Macros.resultFolderPath + "/" + projectName + ".json"), res.getBytes());
 //            } catch (Exception e) {
