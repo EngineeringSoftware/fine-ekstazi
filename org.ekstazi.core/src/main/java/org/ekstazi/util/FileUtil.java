@@ -57,7 +57,7 @@ public class FileUtil {
             sb.append(".");
         }
         sb.append("ser");
-        return System.getProperty("user.dir") + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        return System.getProperty("user.dir") + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
                 Names.CHANGE_TYPES_DIR_NAME + "/" + sb.toString();
     }
 

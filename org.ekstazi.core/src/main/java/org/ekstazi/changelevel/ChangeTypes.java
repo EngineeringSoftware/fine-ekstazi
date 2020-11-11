@@ -189,29 +189,22 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     }
 
     private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean hasHierarchy){
-        Iterator<Map.Entry<String, String>> iterator = newMethods.entrySet().iterator();
-        // Iterate over the HashMap
-        while (iterator.hasNext()) {
-            Map.Entry<String, String> entry = iterator.next();
-            if (oldMethods.containsKey(entry.getKey())){
-                if (!entry.getValue().equals( oldMethods.get(entry.getKey()) )){
-                    return true;
+        Set<String> methodSig = new HashSet<>(oldMethods.keySet());
+        methodSig.addAll(newMethods.keySet());
+        for (String sig : methodSig){
+            if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
+                if (oldMethods.get(sig).equals(newMethods.get(sig))) {
+                    oldMethods.remove(sig);
+                    newMethods.remove(sig);
                 }else{
-                    iterator.remove();
-                    oldMethods.remove(entry.getKey());
+                    return true;
                 }
-            } else{
-                // rename
-                if (oldMethods.containsValue(entry.getValue())){
-                    iterator.remove();
-                    AtomicReference<String> oldSig = null;
-                    oldMethods.forEach((key, value) -> {
-                        if (value.equals(entry.getValue())) {
-                            oldSig.set(key);
-                        }
-                    });
-                    oldMethods.remove(oldSig.get());
-                }
+            } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
+                oldMethods.remove(sig);
+                newMethods.values().remove(oldMethods.get(sig));
+            } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
+                newMethods.remove(sig);
+                oldMethods.values().remove(newMethods.get(sig));
             }
         }
 

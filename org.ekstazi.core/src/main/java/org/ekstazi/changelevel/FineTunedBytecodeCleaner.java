@@ -300,7 +300,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     static String REMOVE_FIELD = "remove field"; // 21
     static String CHANGE_MODIFIER_OF_FIELD = "change_modifier_of_field"; // 9
 
-    static String ADD_INSTANCE_METHOD = "add_or_remove_instance_method"; // 6
+    static String ADD_INSTANCE_METHOD = "add_instance_method"; // 6
     static String REMOVE_INSTANCE_METHOD = "remove_instance_method"; // 22
     static String ADD_STATIC_METHOD = "add_static_method"; // 8
     static String REMOVE_STATIC_METHOD = "remove_static_method"; // 20
@@ -405,30 +405,23 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return res;
     }
 
-    public static String methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean isStatic){
-        Iterator<Map.Entry<String, String>> iterator = newMethods.entrySet().iterator();
-        // Iterate over the HashMap
-        while (iterator.hasNext()) {
-            Map.Entry<String, String> entry = iterator.next();
-            if (oldMethods.containsKey(entry.getKey())){
-                if (!entry.getValue().equals( oldMethods.get(entry.getKey()) )){
-                    return METHOD;
+    public static String methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods, boolean isStatic){
+        Set<String> methodSig = new HashSet<>(oldMethods.keySet());
+        methodSig.addAll(newMethods.keySet());
+        for (String sig : methodSig){
+            if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
+                if (oldMethods.get(sig).equals(newMethods.get(sig))) {
+                    oldMethods.remove(sig);
+                    newMethods.remove(sig);
                 }else{
-                    iterator.remove();
-                    oldMethods.remove(entry.getKey());
+                    return METHOD;
                 }
-            } else{
-                // rename
-                if (oldMethods.containsValue(entry.getValue())){
-                    iterator.remove();
-                    AtomicReference<String> oldSig = null;
-                    oldMethods.forEach((key, value) -> {
-                        if (value.equals(entry.getValue())) {
-                            oldSig.set(key);
-                        }
-                    });
-                    oldMethods.remove(oldSig.get());
-                }
+            } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
+                oldMethods.remove(sig);
+                newMethods.values().remove(oldMethods.get(sig));
+            } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
+                newMethods.remove(sig);
+                oldMethods.values().remove(newMethods.get(sig));
             }
         }
 
@@ -511,7 +504,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 if (ChangeTypes.hierarchyGraph == null) {
                     ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/classes"));
                     ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/test-classes"));
-                    System.out.println(ChangeTypes.hierarchyGraph);
+//                    System.out.println(ChangeTypes.hierarchyGraph);
                 }
 
 
