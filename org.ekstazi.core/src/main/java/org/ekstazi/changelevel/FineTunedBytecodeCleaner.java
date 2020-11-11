@@ -48,8 +48,8 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         FieldVisitor fv = cv.visitField(access, name, desc, signature, value);
-
-        boolean isStatic = (access > Opcodes.ACC_STATIC);
+//        (access > Opcodes.ACC_STATIC)
+        boolean isStatic = (access & Opcodes.ACC_STATIC) != 0 ;
         if (isStatic){
             staticFieldMap.put(name + desc, access + " ");
         }else{
@@ -100,7 +100,8 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     // initialize static field
                     constructorsMap.put(methodSignature, sortedString(methodBody));
                 } else{
-                    boolean isStatic = (access > Opcodes.ACC_STATIC);
+//                    (access > Opcodes.ACC_STATIC)
+                    boolean isStatic =  (access & Opcodes.ACC_STATIC) != 0 ;
                     if(isStatic){
                         staticMethodMap.put(methodSignature, methodBody);
                         methodMap.put(methodSignature, methodBody);
@@ -317,6 +318,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
     static String CHANGE_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 15
     static String USE_LAMBDA = "use lambda"; // 24
+    static String CHANGE_SIGNATURE = "change signature";
     static String METHOD = "method";
     static String OTHER = "other";
 
@@ -390,12 +392,18 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     }
                 }
 
-                String instanceMethodChange = methodChange(preChangeTypes.instanceMethodMap, curChangeTypes.instanceMethodMap, false);
-                if (!instanceMethodChange.equals(OTHER))
-                    res.add(instanceMethodChange);
-                String staticMethodChange = methodChange(preChangeTypes.staticMethodMap, curChangeTypes.staticMethodMap, true);
-                if (!staticMethodChange.equals(OTHER)){
-                    res.add(staticMethodChange);
+                System.out.println("class: "+curClassPath);
+
+//                System.out.println("pre instance method: "+preChangeTypes.instanceMethodMap.size());
+//                System.out.println("cur instance method: "+curChangeTypes.instanceMethodMap.size());
+                List<String> instanceMethodChange = methodChange(preChangeTypes.instanceMethodMap, curChangeTypes.instanceMethodMap, false);
+                if (instanceMethodChange.size() > 0)
+                    res.addAll(instanceMethodChange);
+//                System.out.println("pre static method: "+preChangeTypes.staticMethodMap.size());
+//                System.out.println("cur static method: "+curChangeTypes.staticMethodMap.size());
+                List<String> staticMethodChange = methodChange(preChangeTypes.staticMethodMap, curChangeTypes.staticMethodMap, true);
+                if (staticMethodChange.size() > 0){
+                    res.addAll(staticMethodChange);
                 }
 
             } catch (IOException e) {
@@ -405,7 +413,8 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return res;
     }
 
-    public static String methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods, boolean isStatic){
+    public static List<String> methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods, boolean isStatic){
+        List<String> res = new ArrayList<>();
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
@@ -414,39 +423,53 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     oldMethods.remove(sig);
                     newMethods.remove(sig);
                 }else{
-                    return METHOD;
+                    res.add(METHOD);
+                    return res;
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
                 oldMethods.remove(sig);
                 newMethods.values().remove(oldMethods.get(sig));
+                res.add(CHANGE_SIGNATURE);
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
                 newMethods.remove(sig);
                 oldMethods.values().remove(newMethods.get(sig));
+                res.add(CHANGE_SIGNATURE);
             }
         }
 
         if (oldMethods.size() == 0 && newMethods.size() == 0){
-            return OTHER;
+            return res;
         }
+
+//        System.out.println("isStatic: "+isStatic);
+//        System.out.println("old method size: "+oldMethods.size());
+//        System.out.println("new method size: "+newMethods.size());
 
         // one methodmap is empty then the left must be added or deleted.
         if (oldMethods.size() == 0){
+//            for (String s : newMethods.keySet()) {
+//                System.out.println(s);
+//            }
             if (!isStatic) {
-                return ADD_INSTANCE_METHOD;
+                res.add(ADD_INSTANCE_METHOD);
+                return res;
             }else{
-                return ADD_STATIC_METHOD;
+                res.add(ADD_STATIC_METHOD);
+                return res;
             }
         }
 
         if (newMethods.size() == 0){
             if (!isStatic){
-                return REMOVE_INSTANCE_METHOD;
+                res.add(REMOVE_INSTANCE_METHOD);
+                return res;
             }else{
-                return REMOVE_STATIC_METHOD;
+                res.add(REMOVE_STATIC_METHOD);
+                return res;
             }
         }
 
-        return OTHER;
+        return res;
     }
 
     // this method is used to classify change levels automatically
