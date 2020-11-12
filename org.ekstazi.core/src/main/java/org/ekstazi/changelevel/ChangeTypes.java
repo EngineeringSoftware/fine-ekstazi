@@ -15,14 +15,14 @@ import java.util.stream.Collectors;
 public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     private static final long serialVersionUID = 1234567L;
     public transient static HashMap<String, Set<String>> hierarchyGraph;
-    public transient Set<String> fieldList;
+    public transient TreeMap<String, String> instanceFieldMap;
+    public transient TreeMap<String, String> staticFieldMap;
+    public transient TreeMap<String, String> instanceMethodMap;
+    public transient TreeMap<String, String> staticMethodMap;
 
     public TreeMap<String, String> constructorsMap;
-    public TreeMap<String, String> instanceMethodMap;
-    public TreeMap<String, String> staticMethodMap;
     public TreeMap<String, String> methodMap;
-    public TreeMap<String, String> instanceFieldMap;
-    public TreeMap<String, String> staticFieldMap;
+    public Set<String> fieldList;
     public HashMap<String, String> exceptionMap;
     public HashMap<String, String> annotations;
     public int classModifier;
@@ -125,7 +125,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         }
 
         for (String s : newConstructor.keySet()){
-            if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
+            if (!oldConstructor.keySet().contains(s) || !sortedString(newConstructor.get(s)).equals(sortedString(oldConstructor.get(s)))){
                 return true;
             }
         }
@@ -140,6 +140,10 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
     }
 
+    public String sortedString(String str){
+        return  str.chars() // IntStream
+                .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+    }
     public static List<String> listFiles(String dir) {
         List<String> res = new ArrayList<>();
         try {
