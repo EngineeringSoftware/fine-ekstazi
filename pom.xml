@@ -64,7 +64,7 @@
     <module>org.ekstazi.core</module>
     <module>ekstazi-maven-plugin.test</module>
     <module>org.ekstazi.core.test</module>
-    <!-- <module>org.ekstazi.scalatest</module> -->
+     <module>org.ekstazi.scalatest</module>
     <!-- <module>org.ekstazi.ant.test</module> -->
   </modules>
 
