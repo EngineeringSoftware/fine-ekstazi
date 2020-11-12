@@ -6,3 +6,4 @@ target/
 
 # Private settings.
 settings.xml
+.idea
