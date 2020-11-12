@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     private static final long serialVersionUID = 1234567L;
     public transient static HashMap<String, Set<String>> hierarchyGraph;
+    public transient Set<String> fieldList;
 
     public TreeMap<String, String> constructorsMap;
     public TreeMap<String, String> instanceMethodMap;
@@ -41,6 +42,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         exceptionMap = new HashMap<>();
         annotations = new HashMap<>();
         classInterfaces = new String[0];
+        fieldList = new HashSet<>();
         curClass = "";
         superClass = "";
         urlExternalForm = "";

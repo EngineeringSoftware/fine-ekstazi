@@ -6,7 +6,7 @@ import java.util.Set;
 public class Macros {
     static HashMap<String, String> projectList = new HashMap<>();
     static{
-        projectList.put("apache/commons-codec", "e772d31a");
+        projectList.put("apache/commons-codec", "b542cf9d");
 //        projectList.put("apache/commons-beanutils", "37e9ee0a");
 //        projectList.put("apache/commons-codec", "24059898");
 //        projectList.put("apache/commons-compress", "dfa9ed37");

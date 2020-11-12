@@ -21,6 +21,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     private TreeMap<String, String> staticFieldMap = new TreeMap<>();
     private HashMap<String, String> exceptionMap = new HashMap<>();
     private HashMap<String, String> annotations = new HashMap<>();
+    private Set<String> fieldList = new HashSet<>();
     private int classModifier;
     private String[] classInterfaces;
     private String superClass = "";
@@ -50,10 +51,11 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         FieldVisitor fv = cv.visitField(access, name, desc, signature, value);
 //        (access > Opcodes.ACC_STATIC)
         boolean isStatic = (access & Opcodes.ACC_STATIC) != 0 ;
+        fieldList.add(name+desc);
         if (isStatic){
-            staticFieldMap.put(name + desc, access + " ");
+            staticFieldMap.put(name + desc, " ");
         }else{
-            instanceFieldMap.put(name + desc, access + " ");
+            instanceFieldMap.put(name + desc, " ");
         }
         return fv;
 
@@ -213,6 +215,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         c.curClass = this.curClass;
         c.superClass = this.superClass;
         c.methodMap = this.methodMap;
+        c.fieldList = this.fieldList;
         return c;
     }
 
@@ -379,6 +382,29 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     res.add(CHANGE_BASE_CLASS);
                 }
 
+                Set<String> preFieldList = new HashSet<>(preChangeTypes.fieldList);
+                Set<String> curFieldList = new HashSet<>(curChangeTypes.fieldList);
+                //TODO: commons-codec: b542cf9d
+
+                for (String preField : preChangeTypes.fieldList){
+                    curFieldList.remove(preField);
+                }
+                for (String curField : curChangeTypes.fieldList){
+                    preFieldList.remove(curField);
+                }
+                System.out.println(curChangeTypes.fieldList);
+                System.out.println("preField: " + preFieldList);
+                System.out.println("curField: " + curFieldList);
+                if (preFieldList.size() > 0 || curFieldList.size() > 0){
+                    if (preFieldList.size() == 0){
+                        res.add(ADD_FIELD);
+                    }else if(curFieldList.size() == 0){
+                        res.add(REMOVE_FIELD);
+                    }else{
+                        res.add(CHANGE_FIELD_DECLARATION);
+                    }
+                }
+
                 TreeMap<String, String> newConstructor = preChangeTypes.constructorsMap;
                 TreeMap<String, String> oldConstructor = curChangeTypes.constructorsMap;
 
@@ -394,13 +420,13 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
                 System.out.println("class: "+curClassPath);
 
-//                System.out.println("pre instance method: "+preChangeTypes.instanceMethodMap.size());
-//                System.out.println("cur instance method: "+curChangeTypes.instanceMethodMap.size());
+                System.out.println("pre instance method: "+preChangeTypes.instanceMethodMap.size());
+                System.out.println("cur instance method: "+curChangeTypes.instanceMethodMap.size());
                 List<String> instanceMethodChange = methodChange(preChangeTypes.instanceMethodMap, curChangeTypes.instanceMethodMap, false);
                 if (instanceMethodChange.size() > 0)
                     res.addAll(instanceMethodChange);
-//                System.out.println("pre static method: "+preChangeTypes.staticMethodMap.size());
-//                System.out.println("cur static method: "+curChangeTypes.staticMethodMap.size());
+                System.out.println("pre static method: "+preChangeTypes.staticMethodMap.size());
+                System.out.println("cur static method: "+curChangeTypes.staticMethodMap.size());
                 List<String> staticMethodChange = methodChange(preChangeTypes.staticMethodMap, curChangeTypes.staticMethodMap, true);
                 if (staticMethodChange.size() > 0){
                     res.addAll(staticMethodChange);
@@ -424,15 +450,16 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     newMethods.remove(sig);
                 }else{
                     res.add(METHOD);
-                    return res;
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
                 oldMethods.remove(sig);
                 newMethods.values().remove(oldMethods.get(sig));
+                System.out.println("change sig: " + sig);
                 res.add(CHANGE_SIGNATURE);
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
                 newMethods.remove(sig);
                 oldMethods.values().remove(newMethods.get(sig));
+                System.out.println("change sig: " + sig);
                 res.add(CHANGE_SIGNATURE);
             }
         }
@@ -441,9 +468,9 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             return res;
         }
 
-//        System.out.println("isStatic: "+isStatic);
-//        System.out.println("old method size: "+oldMethods.size());
-//        System.out.println("new method size: "+newMethods.size());
+        System.out.println("isStatic: "+isStatic);
+        System.out.println("old method size: "+oldMethods.size());
+        System.out.println("new method size: "+newMethods.size());
 
         // one methodmap is empty then the left must be added or deleted.
         if (oldMethods.size() == 0){
@@ -465,6 +492,19 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 return res;
             }else{
                 res.add(REMOVE_STATIC_METHOD);
+                return res;
+            }
+        }
+
+        if (oldMethods.size()>0 && newMethods.size()>0){
+            if (!isStatic){
+                System.out.println("change instance method");
+                res.add(REMOVE_INSTANCE_METHOD);
+                res.add(ADD_INSTANCE_METHOD);
+                return res;
+            }else{
+                res.add(REMOVE_STATIC_METHOD);
+                res.add(ADD_STATIC_METHOD);
                 return res;
             }
         }
