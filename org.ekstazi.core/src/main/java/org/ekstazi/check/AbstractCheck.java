@@ -79,7 +79,6 @@ abstract class AbstractCheck {
         // TODO: if checksum of ekstazi differs, compare ChangeTypes
         if (anyDiff && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            System.out.println("[log] AbstractCheck hasHashChanged: " + fileName);
             ChangeTypes curChangeTypes = new ChangeTypes();
             try {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);

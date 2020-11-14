@@ -80,7 +80,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             FileOutputStream fileOut =
                     new FileOutputStream(file);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            System.out.println("[log] ChangeTypes: executed");
             out.writeObject(c);
             out.close();
             fileOut.close();
@@ -117,18 +116,25 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
         boolean modified;
 
+        // field changes
+        if (!sortedString(fieldList.toString()).equals(sortedString(other.fieldList.toString()))){
+            return false;
+        }
+
         TreeMap<String, String> newConstructor = this.constructorsMap;
         TreeMap<String, String> oldConstructor = other.constructorsMap;
 
         if (newConstructor.size() != oldConstructor.size()){
-            return true;
+            return false;
         }
 
         for (String s : newConstructor.keySet()){
             if (!oldConstructor.keySet().contains(s) || !sortedString(newConstructor.get(s)).equals(sortedString(oldConstructor.get(s)))){
-                return true;
+                return false;
             }
         }
+
+        // if there is method change
         boolean hasHierarchy = false;
         String newCurClass = this.curClass;
         String oldCurClass = other.curClass;
