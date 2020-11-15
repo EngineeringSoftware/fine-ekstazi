@@ -212,11 +212,11 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
                     return true;
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
-                oldMethods.remove(sig);
                 newMethods.values().remove(oldMethods.get(sig));
+                oldMethods.remove(sig);
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
-                newMethods.remove(sig);
                 oldMethods.values().remove(newMethods.get(sig));
+                newMethods.remove(sig);
             }
         }
 

@@ -452,13 +452,13 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     res.add(METHOD);
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
-                oldMethods.remove(sig);
                 newMethods.values().remove(oldMethods.get(sig));
+                oldMethods.remove(sig);
                 System.out.println("change sig: " + sig);
                 res.add(CHANGE_SIGNATURE);
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
-                newMethods.remove(sig);
                 oldMethods.values().remove(newMethods.get(sig));
+                newMethods.remove(sig);
                 System.out.println("change sig: " + sig);
                 res.add(CHANGE_SIGNATURE);
             }
