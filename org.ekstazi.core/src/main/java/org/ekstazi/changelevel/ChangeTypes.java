@@ -12,6 +12,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
+
 public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     private static final long serialVersionUID = 1234567L;
     public transient static HashMap<String, Set<String>> hierarchyGraph;
@@ -233,32 +235,12 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     }
 
     public static void main(String[] args){
-//        System.out.println("test");
-//        ChangeTypes c1 = new ChangeTypes();
-//        c1.methodMap.put("a", "a");
-//        ChangeTypes c2 = new ChangeTypes();
-//        c2.methodMap.put("b", "b");
-//        Set<RegData> s = new TreeSet<>();
-//        s.add(new RegData("a", c1));
-//        s.add(new RegData("b", c2));
-//        try {
-//            FileOutputStream fos = new FileOutputStream("pipi.txt");
-//            ObjectOutputStream oos= new ObjectOutputStream(fos);
-//            oos.writeObject(s);
-//            System.out.println("num of changetypes: "+s.size());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
+        String filePath = "/Users/liuyu/pipiyu/finerts/org.ekstazi.core/src/main/java/org/ekstazi/changelevel/A.class";
         try {
-            FileInputStream fis = new FileInputStream("/Users/liuyu/pipiyu/ctaxonomy/ekstazi/_downloads/commons-codec/.ekstazi/org.apache.commons.codec.digest.B64Test.clz");
-            Set<RegData> s1;
-            ObjectInputStream ois=new ObjectInputStream(fis);
-            s1=(TreeSet<RegData>)ois.readObject();
-            System.out.println("num of changetypes: "+s1.size());
+            byte[] array = Files.readAllBytes(Paths.get(filePath));
+            ChangeTypes preChangeTypes = removeDebugInfo(array);
+            System.out.println(preChangeTypes.methodMap);
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
     }

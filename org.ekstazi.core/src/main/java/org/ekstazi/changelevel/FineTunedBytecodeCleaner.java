@@ -3,6 +3,7 @@ package org.ekstazi.changelevel;
 import org.ekstazi.asm.*;
 
 import java.io.*;
+import java.sql.SQLOutput;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -49,9 +50,8 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         FieldVisitor fv = cv.visitField(access, name, desc, signature, value);
-//        (access > Opcodes.ACC_STATIC)
         boolean isStatic = (access & Opcodes.ACC_STATIC) != 0 ;
-        fieldList.add(name+desc);
+        fieldList.add(name+desc+value);
         if (isStatic){
             staticFieldMap.put(name + desc, " ");
         }else{
@@ -102,7 +102,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     // initialize static field
                     constructorsMap.put(methodSignature, sortedString(methodBody));
                 } else{
-//                    (access > Opcodes.ACC_STATIC)
                     boolean isStatic =  (access & Opcodes.ACC_STATIC) != 0 ;
                     if(isStatic){
                         staticMethodMap.put(methodSignature, methodBody);
@@ -392,7 +391,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 for (String curField : curChangeTypes.fieldList){
                     preFieldList.remove(curField);
                 }
-                System.out.println(curChangeTypes.fieldList);
+
                 System.out.println("preField: " + preFieldList);
                 System.out.println("curField: " + curFieldList);
                 if (preFieldList.size() > 0 || curFieldList.size() > 0){
@@ -413,6 +412,10 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 }
 
                 for (String s : newConstructor.keySet()){
+                    System.out.println("constructor: ");
+                    System.out.println(s);
+                    System.out.println(oldConstructor.get(s));
+                    System.out.println(newConstructor.get(s));
                     if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
                         res.add(UPDATE_CONSTRUCTOR);
                     }
