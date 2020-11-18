@@ -330,7 +330,7 @@ public final class DependencyAnalyzer {
                     modified = false;
                 }
             } catch (ClassNotFoundException | IOException e) {
-                e.printStackTrace();
+                return true;
             } finally{
                 if (modified){
                     ChangeTypes.toFile(fileName, curChangeTypes);

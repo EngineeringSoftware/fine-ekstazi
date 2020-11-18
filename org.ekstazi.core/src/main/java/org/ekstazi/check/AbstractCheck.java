@@ -88,7 +88,7 @@ abstract class AbstractCheck {
                     return false;
                 }
             } catch (ClassNotFoundException | IOException e) {
-                e.printStackTrace();
+                return true;
             } finally {
                 if (anyDiff){
                     ChangeTypes.toFile(fileName, curChangeTypes);
