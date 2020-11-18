@@ -326,10 +326,11 @@ public final class DependencyAnalyzer {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
                 curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
                         new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
-                if (preChangeTypes.equals(curChangeTypes)) {
+                if (preChangeTypes != null && preChangeTypes.equals(curChangeTypes)) {
                     modified = false;
                 }
             } catch (ClassNotFoundException | IOException e) {
+                ChangeTypes.toFile(fileName, curChangeTypes);
                 return true;
             } finally{
                 if (modified){
