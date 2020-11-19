@@ -21,13 +21,13 @@ package org.ekstazi;
  */
 public final class Names {
     public static final String TOOL_NAME = "Ekstazi";
-    public static final String TOOL_VERSION = "5.3.0"; // EkstaziVersion
+    public static final String TOOL_VERSION = "5.4.0"; // EkstaziVersion
     
     // Configuration.
     /** Configuration file name (in home/user directory) */
     public static final String EKSTAZI_CONFIG_FILE = ".ekstazirc";
     public static final String EKSTAZI_ROOT_DIR_NAME = ".ekstazi";
-    public static final String CHANGE_TYPES_DIR_NAME = "sers";
+    public static final String CHANGE_TYPES_DIR_NAME = "objs";
 
     /** Directory (inside root directory) for test results */
     public static final String TEST_RESULTS_DIR_NAME = "test-results";

@@ -49,10 +49,10 @@ public class FileUtil {
 
     public static String urlToObjFilePath(String urlExternalForm){
         int index = urlExternalForm.indexOf("target");
-        urlExternalForm = urlExternalForm.substring(index);
+        urlExternalForm = urlExternalForm.substring(index).replace(".class", "");
         StringBuffer sb = new StringBuffer();
         String[] array = urlExternalForm.split("/");
-        for (int i = 2; i < array.length-1; i++){
+        for (int i = 2; i < array.length; i++){
             sb.append(array[i]);
             sb.append(".");
         }
