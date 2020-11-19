@@ -144,7 +144,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             hasHierarchy =  true;
         }
         modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), hasHierarchy);
-        return modified;
+        return !modified;
 
     }
 
