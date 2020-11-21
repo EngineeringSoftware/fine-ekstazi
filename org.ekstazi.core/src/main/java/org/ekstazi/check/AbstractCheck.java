@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.ekstazi.Config;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.data.RegData;
@@ -77,7 +78,7 @@ abstract class AbstractCheck {
         String newHash = hasher.hashURL(urlExternalForm);
         boolean anyDiff = !newHash.equals(regDatum.getHash());
         // TODO: if checksum of ekstazi differs, compare ChangeTypes
-        if (anyDiff && urlExternalForm.contains("target")) {
+        if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
             ChangeTypes curChangeTypes = new ChangeTypes();
             try {

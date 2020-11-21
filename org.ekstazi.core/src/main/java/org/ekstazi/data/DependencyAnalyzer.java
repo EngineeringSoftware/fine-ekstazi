@@ -319,7 +319,7 @@ public final class DependencyAnalyzer {
         String newHash = hasher.hashURL(urlExternalForm);
         modified = !newHash.equals(regDatum.getHash());
         // TODO:
-        if (modified && urlExternalForm.contains("target")) {
+        if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
             ChangeTypes curChangeTypes = new ChangeTypes();
             try {

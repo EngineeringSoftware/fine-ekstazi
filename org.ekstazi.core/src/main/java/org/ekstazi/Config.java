@@ -198,6 +198,10 @@ public final class Config {
         }
     }
 
+    @Opt(desc = "finerts mode")
+    public static boolean FINERTS_ON_V = false;
+    protected static final String FINERTS_ON_N  = "finerts";
+
     @Opt(desc = "Debug mode")
     public static DebugMode DEBUG_MODE_V = DebugMode.NONE;
     protected static String DEBUG_MODE_N = "debug.mode";
@@ -356,6 +360,7 @@ public final class Config {
         X_LOG_RUNS_V = getBoolean(props, X_LOG_RUNS_N, X_LOG_RUNS_V);
         X_INSTRUMENT_CODE_V = getBoolean(props, X_INSTRUMENT_CODE_N, X_INSTRUMENT_CODE_V);
         X_DEPENDENCIES_SAVE_V = getBoolean(props, X_DEPENDENCIES_SAVE_N, X_DEPENDENCIES_SAVE_V);
+        FINERTS_ON_V = getBoolean(props, FINERTS_ON_N, FINERTS_ON_V);
         DEBUG_V = getBoolean(props, DEBUG_N, DEBUG_V);
         DEBUG_MODE_V = DebugMode.fromString(getString(props, DEBUG_MODE_N, DEBUG_MODE_V.toString()));
         CACHE_SIZES_V = getInteger(props, CACHE_SIZES_N, CACHE_SIZES_V);
