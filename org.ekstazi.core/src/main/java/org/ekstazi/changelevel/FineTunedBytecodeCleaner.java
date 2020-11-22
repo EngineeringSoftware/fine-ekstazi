@@ -23,6 +23,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     private HashMap<String, String> exceptionMap = new HashMap<>();
     private HashMap<String, String> annotations = new HashMap<>();
     private Set<String> fieldList = new HashSet<>();
+    public HashSet<String> testMethodSig = new HashSet<>();
     private int classModifier;
     private String[] classInterfaces;
     private String superClass = "";
@@ -118,7 +119,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             }
         };
 
-        return new FineTunedMethodVisitor(mv, p);
+        return new FineTunedMethodVisitor(mv, p, name+desc);
     }
 
     @Override
@@ -160,9 +161,25 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     }
 
     class FineTunedMethodVisitor extends TraceMethodVisitor {
+        String sig;
 
         public FineTunedMethodVisitor(MethodVisitor mv, Printer p) {
             super(mv, p);
+        }
+
+        public FineTunedMethodVisitor(MethodVisitor mv, Printer p, String sig) {
+            super(mv, p);
+            this.sig = sig;
+        }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+            if(visible){
+                if (desc.equals("Lorg/junit/Test;"))
+                    testMethodSig.add(sig);
+
+            }
+            return super.visitAnnotation(desc, visible);
         }
 
         @Override
@@ -215,6 +232,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         c.superClass = this.superClass;
         c.methodMap = this.methodMap;
         c.fieldList = this.fieldList;
+        c.testMethodSig = this.testMethodSig;
         return c;
     }
 
@@ -412,10 +430,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 }
 
                 for (String s : newConstructor.keySet()){
-                    System.out.println("constructor: ");
-                    System.out.println(s);
-                    System.out.println(oldConstructor.get(s));
-                    System.out.println(newConstructor.get(s));
                     if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
                         res.add(UPDATE_CONSTRUCTOR);
                     }

@@ -22,10 +22,12 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     public transient TreeMap<String, String> instanceMethodMap;
     public transient TreeMap<String, String> staticMethodMap;
 
+
     public TreeMap<String, String> constructorsMap;
     public TreeMap<String, String> methodMap;
     public Set<String> fieldList;
     public HashMap<String, String> exceptionMap;
+    public HashSet<String> testMethodSig;
     public HashMap<String, String> annotations;
     public int classModifier;
     public String[] classInterfaces;
@@ -45,6 +47,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         annotations = new HashMap<>();
         classInterfaces = new String[0];
         fieldList = new HashSet<>();
+        testMethodSig = new HashSet<>();
         curClass = "";
         superClass = "";
         urlExternalForm = "";
@@ -130,8 +133,9 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             return false;
         }
 
+        // constructor changes
         for (String s : newConstructor.keySet()){
-            if (!oldConstructor.keySet().contains(s) || !sortedString(newConstructor.get(s)).equals(sortedString(oldConstructor.get(s)))){
+            if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
                 return false;
             }
         }
@@ -143,7 +147,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         if (ChangeTypes.hierarchyGraph.containsKey(newCurClass) || ChangeTypes.hierarchyGraph.containsKey(oldCurClass)){
             hasHierarchy =  true;
         }
-        modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), hasHierarchy);
+        modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), this.testMethodSig, hasHierarchy);
         return !modified;
 
     }
@@ -152,6 +156,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         return  str.chars() // IntStream
                 .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
     }
+
     public static List<String> listFiles(String dir) {
         List<String> res = new ArrayList<>();
         try {
@@ -202,10 +207,13 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 //        System.out.println("[log]hierarchyGraph: "+hierarchyGraph.keySet());
     }
 
-    private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean hasHierarchy){
+    private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, HashSet<String> testMethodSig, boolean hasHierarchy){
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
+            if (testMethodSig.contains(sig)){
+                continue;
+            }
             if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
                 if (oldMethods.get(sig).equals(newMethods.get(sig))) {
                     oldMethods.remove(sig);
