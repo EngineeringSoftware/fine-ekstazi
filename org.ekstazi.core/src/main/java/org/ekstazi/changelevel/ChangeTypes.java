@@ -211,9 +211,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
-            if (testMethodSig.contains(sig)){
-                continue;
-            }
             if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
                 if (oldMethods.get(sig).equals(newMethods.get(sig))) {
                     oldMethods.remove(sig);
@@ -227,6 +224,8 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
                 oldMethods.values().remove(newMethods.get(sig));
                 newMethods.remove(sig);
+            } else if (testMethodSig.contains(sig)){
+                return true;
             }
         }
 
