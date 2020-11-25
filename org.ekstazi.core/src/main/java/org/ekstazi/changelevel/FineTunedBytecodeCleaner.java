@@ -172,15 +172,14 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             this.sig = sig;
         }
 
-        @Override
-        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-            if(visible){
-                if (desc.equals("Lorg/junit/Test;"))
-                    testMethodSig.add(sig);
-
-            }
-            return super.visitAnnotation(desc, visible);
-        }
+//        @Override
+//        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+//            if(visible){uyitfdd
+//                if (desc.equals("Lorg/junit/Test;"))
+//                    testMethodSig.add(sig);
+//            }
+//            return super.visitAnnotation(desc, visible);
+//        }
 
         @Override
         public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
@@ -232,7 +231,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         c.superClass = this.superClass;
         c.methodMap = this.methodMap;
         c.fieldList = this.fieldList;
-        c.testMethodSig = this.testMethodSig;
         return c;
     }
 

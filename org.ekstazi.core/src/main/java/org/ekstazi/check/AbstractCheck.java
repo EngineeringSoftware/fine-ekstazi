@@ -18,6 +18,7 @@ package org.ekstazi.check;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Set;
 
 import org.ekstazi.Config;
@@ -37,6 +38,7 @@ abstract class AbstractCheck {
     /** Hasher */
     protected final Hasher mHasher;
 
+    protected static HashMap<String, Boolean> fileChanged = new HashMap<>();
     /**
      * Constructor.
      */
@@ -80,25 +82,31 @@ abstract class AbstractCheck {
         // TODO: if checksum of ekstazi differs, compare ChangeTypes
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            ChangeTypes curChangeTypes = new ChangeTypes();
+            Boolean changed = fileChanged.get(fileName);
+//            System.out.println("AbstractCheck ChangeTypes.fileChanged: " + fileChanged);
+            if (changed != null){
+//                System.out.println("AbstractCheck: " + changed + " " + fileName);
+                return changed;
+            }
+            ChangeTypes curChangeTypes;
             try {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
                 curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
                         new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
                 if (preChangeTypes != null && preChangeTypes.equals(curChangeTypes)){
+                    fileChanged.put(fileName, false);
+//                    System.out.println("AbstractCheck (not changed): " + fileName);
                     return false;
                 }
             } catch (ClassNotFoundException | IOException e) {
-                ChangeTypes.toFile(fileName, curChangeTypes);
-                return true;
-            } finally {
-                if (anyDiff){
-                    ChangeTypes.toFile(fileName, curChangeTypes);
-                }
+//                System.out.println("[hasHashChanged] 102 changed: " + fileName);
+//                fileChanged.put(fileName, true);
+//                ChangeTypes.toFile(fileName, curChangeTypes);
             }
+//            System.out.println("AbstractCheck (changed): " + fileName);
+            fileChanged.put(fileName, true);
         }
         return anyDiff;
     }
-
 
 }

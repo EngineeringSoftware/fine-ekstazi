@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -321,24 +322,29 @@ public final class DependencyAnalyzer {
         // TODO:
         if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
+//            Boolean changed = AbstractCheck.fileChanged.get(fileName);
+//            System.out.println("ChangeTypes.fileChanged: " + AbstractCheck.fileChanged);
+//            if (changed != null){
+//                System.out.println("dependencyAnalyzer : " + changed + " " + fileName);
+//                return changed;
+//            }
             ChangeTypes curChangeTypes = new ChangeTypes();
             try {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
                 curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
                         new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
                 if (preChangeTypes != null && preChangeTypes.equals(curChangeTypes)) {
-                    modified = false;
+//                    System.out.println("dependencyAnalyzer (not modified): " + fileName);
+//                    AbstractCheck.fileChanged.put(fileName, false);
+                    mUrlExternalForm2Modified.put(urlExternalForm, false);
+                    return false;
                 }
             } catch (ClassNotFoundException | IOException e) {
-                ChangeTypes.toFile(fileName, curChangeTypes);
-                return true;
-            } finally{
-                if (modified){
-                    ChangeTypes.toFile(fileName, curChangeTypes);
-                }
             }
+//            AbstractCheck.fileChanged.put(fileName, true);
+//            System.out.println("dependencyAnalyzer (modified): " + fileName);
+            ChangeTypes.toFile(fileName, curChangeTypes);
         }
-
 
         mUrlExternalForm2Modified.put(urlExternalForm, modified);
         return modified;

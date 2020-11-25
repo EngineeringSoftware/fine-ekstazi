@@ -1,5 +1,6 @@
 package org.ekstazi.changelevel;
 
+import org.ekstazi.Names;
 import org.ekstazi.asm.ClassReader;
 import org.ekstazi.data.RegData;
 import org.ekstazi.util.FileUtil;
@@ -21,13 +22,12 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     public transient TreeMap<String, String> staticFieldMap;
     public transient TreeMap<String, String> instanceMethodMap;
     public transient TreeMap<String, String> staticMethodMap;
-
+    public static transient HashSet<String> testClasses;
 
     public TreeMap<String, String> constructorsMap;
     public TreeMap<String, String> methodMap;
     public Set<String> fieldList;
     public HashMap<String, String> exceptionMap;
-    public HashSet<String> testMethodSig;
     public HashMap<String, String> annotations;
     public int classModifier;
     public String[] classInterfaces;
@@ -47,22 +47,29 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         annotations = new HashMap<>();
         classInterfaces = new String[0];
         fieldList = new HashSet<>();
-        testMethodSig = new HashSet<>();
         curClass = "";
         superClass = "";
         urlExternalForm = "";
     }
 
-    /** Read the object from Base64 string. */
-    public static Object fromString(String s) throws IOException,
-            ClassNotFoundException {
-        byte [] data = Base64.getDecoder().decode( s );
-        ObjectInputStream ois = new ObjectInputStream(
-                new ByteArrayInputStream(  data ) );
-        Object o  = ois.readObject();
-        ois.close();
-        return o;
-    }
+//    /** Read the object from Base64 string. */
+//    public static Object fromString(String s) throws IOException,
+//            ClassNotFoundException {
+//        byte [] data = Base64.getDecoder().decode( s );
+//        ObjectInputStream ois = new ObjectInputStream(
+//                new ByteArrayInputStream(  data ) );
+//        Object o  = ois.readObject();
+//        ois.close();
+//        return o;
+//    }
+//    /** Write the object to a Base64 string. */
+//    public static String toString( Serializable o ) throws IOException {
+//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//        ObjectOutputStream oos = new ObjectOutputStream( baos );
+//        oos.writeObject( o );
+//        oos.close();
+//        return Base64.getEncoder().encodeToString(baos.toByteArray());
+//    }
 
     public static ChangeTypes fromFile(String fileName) throws IOException,ClassNotFoundException{
         ChangeTypes c = null;
@@ -91,15 +98,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         } catch (IOException i) {
             i.printStackTrace();
         }
-    }
-
-    /** Write the object to a Base64 string. */
-    public static String toString( Serializable o ) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream( baos );
-        oos.writeObject( o );
-        oos.close();
-        return Base64.getEncoder().encodeToString(baos.toByteArray());
     }
 
     @Override
@@ -147,14 +145,28 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         if (ChangeTypes.hierarchyGraph.containsKey(newCurClass) || ChangeTypes.hierarchyGraph.containsKey(oldCurClass)){
             hasHierarchy =  true;
         }
-        modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), this.testMethodSig, hasHierarchy);
+        if (testClasses == null){
+            testClasses = listTestClasses();
+        }
+        modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), hasHierarchy);
         return !modified;
-
     }
 
     public String sortedString(String str){
         return  str.chars() // IntStream
                 .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+    }
+
+    public HashSet<String> listTestClasses(){
+        HashSet<String> testClasses = new HashSet<>();
+        File folder = new File(System.getProperty("user.dir") + "/" +Names.EKSTAZI_ROOT_DIR_NAME);
+        for (final File fileEntry : folder.listFiles()) {
+            String fileName = fileEntry.getName();
+            if (fileEntry.isFile() && fileName.endsWith(".clz")) {
+                testClasses.add(fileName.substring(0, fileName.length()-4).replace(".", "/"));
+            }
+        }
+        return testClasses;
     }
 
     public static List<String> listFiles(String dir) {
@@ -207,7 +219,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 //        System.out.println("[log]hierarchyGraph: "+hierarchyGraph.keySet());
     }
 
-    private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, HashSet<String> testMethodSig, boolean hasHierarchy){
+    private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean hasHierarchy){
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
@@ -224,8 +236,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
                 oldMethods.values().remove(newMethods.get(sig));
                 newMethods.remove(sig);
-            } else if (testMethodSig.contains(sig)){
-                return true;
             }
         }
 
@@ -235,6 +245,9 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
         // one methodmap is empty then the left must be added or deleted.
         if (!hasHierarchy && (oldMethods.size() == 0 || newMethods.size() == 0)){
+            if (testClasses.contains(this.curClass)){
+                return true;
+            }
             return false;
         }
 
