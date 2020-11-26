@@ -72,6 +72,8 @@ public final class DependencyAnalyzer {
     /** dependencies.append */
     private final boolean mDependenciesAppend;
 
+    protected static HashMap<String, Boolean> fileChanged = new HashMap<>();
+
     /**
      * Constructor.
      */
@@ -85,7 +87,9 @@ public final class DependencyAnalyzer {
         this.mDependenciesAppend = Config.DEPENDENCIES_APPEND_V;
 
         this.mUrlExternalForm2Modified = new LRUMap<String, Boolean>(cacheSizes);
+
         this.mFullTestName2Rerun = new LRUMap<String, Boolean>(cacheSizes);
+
     }
 
     public synchronized void beginCoverage(String name) {
@@ -322,12 +326,12 @@ public final class DependencyAnalyzer {
         // TODO:
         if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-//            Boolean changed = AbstractCheck.fileChanged.get(fileName);
+            Boolean changed = fileChanged.get(fileName);
 //            System.out.println("ChangeTypes.fileChanged: " + AbstractCheck.fileChanged);
-//            if (changed != null){
+            if (changed != null){
 //                System.out.println("dependencyAnalyzer : " + changed + " " + fileName);
-//                return changed;
-//            }
+                return changed;
+            }
             ChangeTypes curChangeTypes = new ChangeTypes();
             try {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
@@ -335,13 +339,13 @@ public final class DependencyAnalyzer {
                         new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
                 if (preChangeTypes != null && preChangeTypes.equals(curChangeTypes)) {
 //                    System.out.println("dependencyAnalyzer (not modified): " + fileName);
-//                    AbstractCheck.fileChanged.put(fileName, false);
+                    fileChanged.put(fileName, false);
                     mUrlExternalForm2Modified.put(urlExternalForm, false);
                     return false;
                 }
             } catch (ClassNotFoundException | IOException e) {
             }
-//            AbstractCheck.fileChanged.put(fileName, true);
+            fileChanged.put(fileName, true);
 //            System.out.println("dependencyAnalyzer (modified): " + fileName);
             ChangeTypes.toFile(fileName, curChangeTypes);
         }
