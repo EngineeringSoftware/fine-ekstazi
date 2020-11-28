@@ -120,7 +120,10 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         boolean modified;
 
         // field changes
-        if (!sortedString(fieldList.toString()).equals(sortedString(other.fieldList.toString()))){
+//        if (!sortedString(fieldList.toString()).equals(sortedString(other.fieldList.toString()))){
+//            return false;
+//        }
+        if (fieldChange(fieldList, other.fieldList)){
             return false;
         }
 
@@ -217,6 +220,24 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         hierarchyGraph.putAll(graph);
 
 //        System.out.println("[log]hierarchyGraph: "+hierarchyGraph.keySet());
+    }
+
+    private boolean fieldChange(Set<String> newFields, Set<String> oldFields){
+        Set<String> preFieldList = new HashSet<>(oldFields);
+        Set<String> curFieldList = new HashSet<>(newFields);
+
+        for (String preField : oldFields){
+            curFieldList.remove(preField);
+        }
+        for (String curField : newFields){
+            preFieldList.remove(curField);
+        }
+
+        if (preFieldList.size() == 0 || curFieldList.size() == 0){
+            return false;
+        }else{
+            return true;
+        }
     }
 
     private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean hasHierarchy){
