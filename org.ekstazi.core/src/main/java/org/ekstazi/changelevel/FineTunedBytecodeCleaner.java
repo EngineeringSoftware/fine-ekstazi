@@ -3,6 +3,8 @@ package org.ekstazi.changelevel;
 import org.ekstazi.asm.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.SQLOutput;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -306,9 +308,9 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
     static String INNER_ACCESS = "add_access"; // 1
 
-    static String ADD_BASE_CLASS = "add base class"; // 2
-    static String ADD_CLASS = "add class";  // 3
-    static String REMOVE_CLASS = "remove class"; // 19
+    static String ADD_BASE_CLASS = "add_base_class"; // 2
+    static String ADD_CLASS = "add_class";  // 3
+    static String REMOVE_CLASS = "remove_class"; // 19
     static String CHANGE_BASE_CLASS = "change_base_class"; // 10
     static String CHANGE_CLASS_MODIFIER = "change_class_modifier"; // 11
 
@@ -618,11 +620,11 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             // generate json file
             String res = gson.toJson(resLinkedHashMap, LinkedHashMap.class);
             System.out.println(res);
-//            try {
-//                Files.write(Paths.get(Macros.resultFolderPath + "/" + projectName + ".json"), res.getBytes());
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
+            try {
+                Files.write(Paths.get(Macros.resultFolderPath + "/" + projectName + ".json"), res.getBytes());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
