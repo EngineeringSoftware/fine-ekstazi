@@ -558,8 +558,8 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             //use json to store the result, here use the library Gson
             Map<String, Map<String, Set<String>>> resLinkedHashMap = new LinkedHashMap<>();
             Gson gson = new GsonBuilder()
-                    .setPrettyPrinting()
                     .disableHtmlEscaping()
+                    .setPrettyPrinting()
                     .create();
             //get previous shas
             String sha = Macros.projectList.get(project);
