@@ -23,6 +23,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     private TreeMap<String, String> instanceFieldMap = new TreeMap<>();
     private TreeMap<String, String> staticFieldMap = new TreeMap<>();
     private HashMap<String, String> exceptionMap = new HashMap<>();
+    // Todo: If there is reflection, it is method level change
     private HashMap<String, String> annotations = new HashMap<>();
     private Set<String> fieldList = new HashSet<>();
     public HashSet<String> testMethodSig = new HashSet<>();
@@ -104,14 +105,18 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 if((name+desc).equals("<clinit>()V")) {
                     // initialize static field
                     constructorsMap.put(methodSignature, sortedString(methodBody));
+                    //todo: Finding 29, change of constructor is a method level change
+                    staticMethodMap.put(methodSignature, sortedString(methodBody));
                 } else{
                     boolean isStatic =  (access & Opcodes.ACC_STATIC) != 0 ;
                     if(isStatic){
                         staticMethodMap.put(methodSignature, methodBody);
                         methodMap.put(methodSignature, methodBody);
                     }else{
-                        if (methodSignature.contains("<init>")) {
+                        if (methodSignature.startsWith("<init>")) {
                             constructorsMap.put(methodSignature, sortedString(methodBody));
+                            //todo: Finding 29, change of constructor is a method level change
+                            instanceMethodMap.put(methodSignature, sortedString(methodBody));
                         }else{
                             instanceMethodMap.put(methodSignature, methodBody);
                             methodMap.put(methodSignature, methodBody);
@@ -332,13 +337,13 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     static String ADD_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 7
     static String ADD_STATIC_INITIALIZED_BLOCK = "add_static_initialized_block";
 
-    static String UPDATE_CONSTRUCTOR = "update constructor or update field initialization"; // 12
-    static String CHANGE_FIELD_INITIALIZATION = "change field initialization"; // 14
-    static String CHANGE_FIELD_DECLARATION = "change field declaration"; // 13
+    static String UPDATE_CONSTRUCTOR = "update_constructor_or_update_field_initialization"; // 12
+    static String CHANGE_FIELD_INITIALIZATION = "change_field_initialization"; // 14
+    static String CHANGE_FIELD_DECLARATION = "change_field_declaration"; // 13
 
     static String CHANGE_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 15
     static String USE_LAMBDA = "use lambda"; // 24
-    static String CHANGE_SIGNATURE = "change signature";
+    static String CHANGE_SIGNATURE = "change_signature";
     static String METHOD = "method";
     static String OTHER = "other";
 
@@ -462,12 +467,17 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
             if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
-                if (oldMethods.get(sig).equals(newMethods.get(sig))) {
-                    oldMethods.remove(sig);
-                    newMethods.remove(sig);
-                }else{
-                    res.add(METHOD);
+//                if (oldMethods.get(sig).equals(newMethods.get(sig))) {
+//                    oldMethods.remove(sig);
+//                    newMethods.remove(sig);
+//                }else{
+//                    res.add(METHOD);
+//                }
+                if (!oldMethods.get(sig).equals(newMethods.get(sig))){
+                    res.add(METHOD + " " + sig);
                 }
+                oldMethods.remove(sig);
+                newMethods.remove(sig);
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
                 newMethods.values().remove(oldMethods.get(sig));
                 oldMethods.remove(sig);
@@ -491,9 +501,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
         // one methodmap is empty then the left must be added or deleted.
         if (oldMethods.size() == 0){
-//            for (String s : newMethods.keySet()) {
-//                System.out.println(s);
-//            }
             if (!isStatic) {
                 res.add(ADD_INSTANCE_METHOD);
                 return res;
