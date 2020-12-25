@@ -539,16 +539,16 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     // this method is used to classify change levels automatically
     public static void main(String[] args) {
         for (String project : Macros.projectList.keySet()) {
-            String folderName = Macros.projectFolderPath;
+            String folderName = Macros.projectFolderPath + "/" + "_downloads";
             File folder = new File(folderName);
             if (!folder.isDirectory()) {
                 bashCommand(".", "mkdir " + folderName);
             }
-            String projectName = project.split("/")[1];
-            String projectPath = folderName + "/" + projectName;
+            String projectPath = folderName + "/" + project.replace("/", "_");
+            System.out.println(projectPath);
             File projectFolder = new File(projectPath);
             if (!projectFolder.isDirectory()) {
-                bashCommand(folderName, "git clone https://github.com/" + project);
+                bashCommand(folderName, "git clone https://github.com/" + project + " " + projectPath);
             }
 
             File resultFolder = new File(Macros.resultFolderPath);
@@ -562,8 +562,19 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     .setPrettyPrinting()
                     .create();
             //get previous shas
-            String sha = Macros.projectList.get(project);
-            String[] shalist = bashCommand(projectPath, "git rev-list --first-parent -n " + (Macros.numSHA + 1) + " " + sha + " | tac").split("\n");
+            String filename = project.replace("/", "_") + ".json";
+            String path = Macros.resultFolderPath + "/shas_with_java_files_change/" + filename;
+            BufferedReader bufferedReader = null;
+            String[] shalist = null;
+            try {
+                bufferedReader = new BufferedReader(new FileReader(path));
+                shalist = gson.fromJson(bufferedReader, String[].class);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                continue;
+            }
+//            String sha = Macros.projectList.get(project);
+//            String[] shalist = bashCommand(projectPath, "git rev-list --first-parent -n " + (Macros.numSHA + 1) + " " + sha + " | tac").split("\n");
             String preSHA = shalist[0];
 
             for (int i = 1; i < shalist.length; i++) {
@@ -629,7 +640,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             String res = gson.toJson(resLinkedHashMap, LinkedHashMap.class);
             System.out.println(res);
             try {
-                Files.write(Paths.get(Macros.resultFolderPath + "/" + projectName + ".json"), res.getBytes());
+                Files.write(Paths.get(Macros.resultFolderPath + "/change_levels/" + filename), res.getBytes());
             } catch (Exception e) {
                 e.printStackTrace();
             }
