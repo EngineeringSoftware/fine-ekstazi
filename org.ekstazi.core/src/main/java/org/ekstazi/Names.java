@@ -21,7 +21,7 @@ package org.ekstazi;
  */
 public final class Names {
     public static final String TOOL_NAME = "Ekstazi";
-    public static final String TOOL_VERSION = "5.4.0"; // EkstaziVersion
+    public static final String TOOL_VERSION = "5.3.1"; // EkstaziVersion
     
     // Configuration.
     /** Configuration file name (in home/user directory) */
