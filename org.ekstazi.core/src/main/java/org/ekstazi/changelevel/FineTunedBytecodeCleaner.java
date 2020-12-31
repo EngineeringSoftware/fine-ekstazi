@@ -323,7 +323,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     static String REMOVE_CONSTRUCTOR = "remove_constructor";// 23
 
     static String ADD_FIELD = "add_field"; // 5
-    static String REMOVE_FIELD = "remove field"; // 21
+    static String REMOVE_FIELD = "remove_field"; // 21
     static String CHANGE_MODIFIER_OF_FIELD = "change_modifier_of_field"; // 9
 
     static String ADD_INSTANCE_METHOD = "add_instance_method"; // 6
@@ -342,7 +342,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     static String CHANGE_FIELD_DECLARATION = "change_field_declaration"; // 13
 
     static String CHANGE_RUNTIME_ANNOTATION = "add_runtime_annotation"; // 15
-    static String USE_LAMBDA = "use lambda"; // 24
+    static String USE_LAMBDA = "use_lambda"; // 24
     static String CHANGE_SIGNATURE = "change_signature";
     static String METHOD = "method";
     static String OTHER = "other";
