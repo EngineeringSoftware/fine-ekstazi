@@ -136,22 +136,24 @@ public abstract class Storer {
         String fullName = className + '.' + methodName;
         save(openFileWrite(dirName, fullName, className, methodName), regData);
 
-        // TODO: Enusre that the directory for ChangeTypes objexts exists.
-        String ctDirName = dirName + "/" + Names.CHANGE_TYPES_DIR_NAME;
-        new File(ctDirName).mkdir();
-        for (RegData r : regData){
-            String urlExternalForm = r.getURLExternalForm();
-            if (urlExternalForm.contains("target")) { // ignore third library
-                String filePath = FileUtil.urlToObjFilePath(urlExternalForm);
-                if (!(new File(filePath).exists())) {
-                    try {
+        if (Config.FINERTS_ON_V) {
+            // TODO: Enusre that the directory for ChangeTypes objexts exists.
+            String ctDirName = dirName + "/" + Names.CHANGE_TYPES_DIR_NAME;
+            new File(ctDirName).mkdir();
+            for (RegData r : regData) {
+                String urlExternalForm = r.getURLExternalForm();
+                if (urlExternalForm.contains("target")) { // ignore third library
+                    String filePath = FileUtil.urlToObjFilePath(urlExternalForm);
+                    if (!(new File(filePath).exists())) {
+                        try {
 //                        System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
-                        ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
-                                new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
+                            ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
+                                    new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
 //                        System.out.println("[log] curClassName: " + curChangeTypes.curClass);
-                        ChangeTypes.toFile(filePath, curChangeTypes);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                            ChangeTypes.toFile(filePath, curChangeTypes);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
