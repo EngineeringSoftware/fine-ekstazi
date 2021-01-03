@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.PARAMETER_TYPE_SPECIALIZATION;
 import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
 
 public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
@@ -71,13 +72,22 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 //        return Base64.getEncoder().encodeToString(baos.toByteArray());
 //    }
 
-    public static ChangeTypes fromFile(String fileName) throws IOException,ClassNotFoundException{
+    public static ChangeTypes fromFile(String fileName){
         ChangeTypes c = null;
-        FileInputStream fileIn = new FileInputStream(fileName);
-        ObjectInputStream in = new ObjectInputStream(fileIn);
-        c= (ChangeTypes) in.readObject();
-        in.close();
-        fileIn.close();
+        FileInputStream fileIn = null;
+        if (!new File(fileName).exists()) {
+            return null;
+        }
+        try {
+            fileIn = new FileInputStream(fileName);
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            c= (ChangeTypes) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (ClassNotFoundException | IOException e) {
+            e.printStackTrace();
+            return c;
+        }
         return c;
     }
 
@@ -86,8 +96,11 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             File file = new File(fileName);
             if (!file.exists()){
                 File dir = new File(file.getParent());
-                dir.mkdirs();
-                file.createNewFile();
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+            } else {
+                file.delete();
             }
             FileOutputStream fileOut =
                     new FileOutputStream(file);
@@ -96,7 +109,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             out.close();
             fileOut.close();
         } catch (IOException i) {
-            i.printStackTrace();
+            throw new RuntimeException(i);
         }
     }
 
@@ -113,8 +126,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         final ChangeTypes other = (ChangeTypes) obj;
 
         if (hierarchyGraph == null){
-            getHierarchyGraph(listFiles(System.getProperty("user.dir")+"/target/classes"));
-            getHierarchyGraph(listFiles(System.getProperty("user.dir")+"/target/test-classes"));
+            getHierarchyGraph();
         }
 
         boolean modified;
@@ -124,27 +136,30 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 //            return false;
 //        }
         if (fieldChange(fieldList, other.fieldList)){
+//            System.out.println("field changes");
             return false;
         }
 
-        TreeMap<String, String> newConstructor = this.constructorsMap;
-        TreeMap<String, String> oldConstructor = other.constructorsMap;
+        TreeMap<String, String> newConstructor = other.constructorsMap;
+        TreeMap<String, String> oldConstructor = this.constructorsMap;
 
         if (newConstructor.size() != oldConstructor.size()){
+//            System.out.println("number of constructor differs");
             return false;
         }
 
         // constructor changes
         for (String s : newConstructor.keySet()){
             if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
+//                System.out.println("constructor changes");
                 return false;
             }
         }
 
         // if there is method change
         boolean hasHierarchy = false;
-        String newCurClass = this.curClass;
-        String oldCurClass = other.curClass;
+        String newCurClass = other.curClass;
+        String oldCurClass = this.curClass;
         if (ChangeTypes.hierarchyGraph.containsKey(newCurClass) || ChangeTypes.hierarchyGraph.containsKey(oldCurClass)){
             hasHierarchy =  true;
         }
@@ -190,36 +205,40 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         return res;
     }
 
-    public static void getHierarchyGraph(List<String> classPaths){
-        // subclass <-> superclasses
-        HashMap<String, Set<String>> graph = new HashMap<>();
+    public static void getHierarchyGraph(){
+        // Find all .class files in the given directory.
         try {
-            for (String classPath : classPaths) {
-                byte[] bytes = FileUtil.readFile(new File(classPath));
-                ClassReader reader = new ClassReader(bytes);
-                String curClassName = reader.getClassName();
-                String superClassName = reader.getSuperName();
-                if (superClassName == null || superClassName.equals("java/lang/Object")){
-                    continue;
-                }else{
-                    Set<String> h = graph.getOrDefault(curClassName, new HashSet<>());
-                    h.add(superClassName);
-                    graph.put(curClassName, h);
+            List<Path> classPaths = Files.walk(Paths.get("."))
+                    .filter(Files::isRegularFile)
+                    .filter(f -> f.toString().endsWith(".class"))
+                    .collect(Collectors.toList());
 
-                    h = graph.getOrDefault(superClassName, new HashSet<>());
-                    h.add(curClassName);
-                    graph.put(superClassName, h);
+            // subclass <-> superclasses
+            HashMap<String, Set<String>> graph = new HashMap<>();
+                for (Path classPath : classPaths) {
+                    byte[] bytes = FileUtil.readFile(classPath.toFile());
+                    ClassReader reader = new ClassReader(bytes);
+                    String curClassName = reader.getClassName();
+                    String superClassName = reader.getSuperName();
+                    if (superClassName == null || superClassName.equals("java/lang/Object")){
+                        continue;
+                    }else{
+                        Set<String> h = graph.getOrDefault(curClassName, new HashSet<>());
+                        h.add(superClassName);
+                        graph.put(curClassName, h);
+
+                        h = graph.getOrDefault(superClassName, new HashSet<>());
+                        h.add(curClassName);
+                        graph.put(superClassName, h);
+                    }
                 }
+                if (hierarchyGraph == null){
+                    hierarchyGraph = new HashMap<>();
+                }
+                hierarchyGraph.putAll(graph);
+            }catch(Exception e){
+                e.printStackTrace();
             }
-        }catch(Exception e){
-
-        }
-        if (hierarchyGraph == null){
-            hierarchyGraph = new HashMap<>();
-        }
-        hierarchyGraph.putAll(graph);
-
-//        System.out.println("[log]hierarchyGraph: "+hierarchyGraph.keySet());
     }
 
     private boolean fieldChange(Set<String> newFields, Set<String> oldFields){
@@ -240,23 +259,27 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         }
     }
 
-    private boolean methodChange(TreeMap<String, String> newMethods, TreeMap<String, String> oldMethods, boolean hasHierarchy){
+    private boolean methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods, boolean hasHierarchy){
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
             if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
                 if (oldMethods.get(sig).equals(newMethods.get(sig))) {
+//                    System.out.println("remove sig: " + sig);
                     oldMethods.remove(sig);
                     newMethods.remove(sig);
                 }else{
+//                    System.out.println("different sig: " + sig);
                     return true;
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
                 newMethods.values().remove(oldMethods.get(sig));
                 oldMethods.remove(sig);
+//                System.out.println("sig changes but method body does not change: " + sig);
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
                 oldMethods.values().remove(newMethods.get(sig));
                 newMethods.remove(sig);
+//                System.out.println("sig changes but method body does not change: " + sig);
             }
         }
 
@@ -267,11 +290,11 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         // one methodmap is empty then the left must be added or deleted.
         if (!hasHierarchy && (oldMethods.size() == 0 || newMethods.size() == 0)){
             if (testClasses.contains(this.curClass)){
+//                System.out.println("hierarchy");
                 return true;
             }
             return false;
         }
-
         return true;
     }
 
@@ -280,7 +303,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         try {
             byte[] array = Files.readAllBytes(Paths.get(filePath));
             ChangeTypes preChangeTypes = removeDebugInfo(array);
-            System.out.println(preChangeTypes.methodMap);
         } catch (IOException e) {
             e.printStackTrace();
         }

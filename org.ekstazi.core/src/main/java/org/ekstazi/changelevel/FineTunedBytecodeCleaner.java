@@ -601,11 +601,9 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 File curTestFolder = new File(projectPath + "/target/test-classes");
 
                 if (ChangeTypes.hierarchyGraph == null) {
-                    ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/classes"));
-                    ChangeTypes.getHierarchyGraph(ChangeTypes.listFiles(projectPath + "/target/test-classes"));
+                    ChangeTypes.getHierarchyGraph();
 //                    System.out.println(ChangeTypes.hierarchyGraph);
                 }
-
 
                 for (String curClassPath : ChangeTypes.listFiles(curClassFolder.getAbsolutePath())){
                     int index = curClassPath.lastIndexOf("target/classes");

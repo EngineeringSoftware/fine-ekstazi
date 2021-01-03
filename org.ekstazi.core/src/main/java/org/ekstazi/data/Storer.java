@@ -17,9 +17,7 @@
 package org.ekstazi.data;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 import org.ekstazi.Config;
 import org.ekstazi.Names;
@@ -35,6 +33,10 @@ import org.ekstazi.util.FileUtil;
  * magic/version sequence as the first several bytes/characters.
  */
 public abstract class Storer {
+    /**
+     * cache to store if a .ser file has been updated
+     */
+    private static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
     /**
      * Storing mode.
@@ -136,21 +138,31 @@ public abstract class Storer {
         String fullName = className + '.' + methodName;
         save(openFileWrite(dirName, fullName, className, methodName), regData);
 
-        if (Config.FINERTS_ON_V) {
-            // TODO: Enusre that the directory for ChangeTypes objexts exists.
+        if(Config.FINERTS_ON_V){
+            // TODO
+            // If the directory for ChangeTypes objects do not exist, then it is first-time run.
             String ctDirName = dirName + "/" + Names.CHANGE_TYPES_DIR_NAME;
-            new File(ctDirName).mkdir();
+            File ctDir = new File(ctDirName);
+            if (!ctDir.exists()) {
+                ctDir.mkdir();
+            }
             for (RegData r : regData) {
                 String urlExternalForm = r.getURLExternalForm();
                 if (urlExternalForm.contains("target")) { // ignore third library
-                    String filePath = FileUtil.urlToObjFilePath(urlExternalForm);
-                    if (!(new File(filePath).exists())) {
+                    boolean isSaved = fileChangedCache.getOrDefault(urlExternalForm, false);
+                    if (!isSaved) {
+                        String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
                         try {
-//                        System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
-                            ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
-                                    new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
-//                        System.out.println("[log] curClassName: " + curChangeTypes.curClass);
-                            ChangeTypes.toFile(filePath, curChangeTypes);
+                            File curClassFile = new File(urlExternalForm.substring(urlExternalForm.indexOf("/")));
+                            if (!curClassFile.exists()) {
+                                // delete previous ChangeTypes
+                                new File(fileName).delete();
+                            }
+                            //System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
+                            ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(curClassFile));
+                            //System.out.println("[log] curClassName: " + curChangeTypes.curClass);
+                            ChangeTypes.toFile(fileName, curChangeTypes);
+                            fileChangedCache.put(urlExternalForm, true);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }

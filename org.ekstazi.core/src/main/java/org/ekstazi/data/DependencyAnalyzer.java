@@ -20,14 +20,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.ekstazi.Config;
-import org.ekstazi.Names;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.hash.Hasher;
@@ -72,7 +68,8 @@ public final class DependencyAnalyzer {
     /** dependencies.append */
     private final boolean mDependenciesAppend;
 
-    protected static HashMap<String, Boolean> fileChanged = new HashMap<>();
+    /** a cache to store if the ChangeTypes changes */
+    protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
     /**
      * Constructor.
@@ -299,13 +296,24 @@ public final class DependencyAnalyzer {
      * returns true; false otherwise.
      */
     private boolean hasHashChanged(Set<RegData> regData) {
-        for (RegData el : regData) {
-            if (hasHashChanged(mHasher, el)) {
-                Log.d("CHANGED", el.getURLExternalForm());
-                return true;
+//        if (Config.FINERTS_ON_V) {
+//            boolean changed = false;
+//            for (RegData el : regData) {
+//                if (hasHashChanged(mHasher, el)) {
+//                    Log.d("CHANGED", el.getURLExternalForm());
+//                    changed = true;
+//                }
+//            }
+//            return changed;
+//        }else {
+            for (RegData el : regData) {
+                if (hasHashChanged(mHasher, el)) {
+                    Log.d("CHANGED", el.getURLExternalForm());
+                    return true;
+                }
             }
-        }
-        return false;
+            return false;
+//        }
     }
 
     /**
@@ -326,28 +334,27 @@ public final class DependencyAnalyzer {
         // TODO:
         if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            Boolean changed = fileChanged.get(fileName);
-//            System.out.println("ChangeTypes.fileChanged: " + AbstractCheck.fileChanged);
-            if (changed != null){
+            Boolean changed = fileChangedCache.get(fileName);
+            if (changed != null) {
 //                System.out.println("dependencyAnalyzer : " + changed + " " + fileName);
                 return changed;
             }
-            ChangeTypes curChangeTypes = new ChangeTypes();
+            ChangeTypes curChangeTypes;
             try {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
-                curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
-                        new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
-                if (preChangeTypes != null && preChangeTypes.equals(curChangeTypes)) {
-//                    System.out.println("dependencyAnalyzer (not modified): " + fileName);
-                    fileChanged.put(fileName, false);
-                    mUrlExternalForm2Modified.put(urlExternalForm, false);
-                    return false;
+                File curClassFile = new File(urlExternalForm.substring(urlExternalForm.indexOf("/")));
+                if (!curClassFile.exists()) {
+                    modified = true;
+                } else {
+                    curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(curClassFile));
+                    modified = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
                 }
-            } catch (ClassNotFoundException | IOException e) {
+                fileChangedCache.put(fileName, modified);
+                mUrlExternalForm2Modified.put(urlExternalForm, modified);
+                return modified;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            fileChanged.put(fileName, true);
-//            System.out.println("dependencyAnalyzer (modified): " + fileName);
-            ChangeTypes.toFile(fileName, curChangeTypes);
         }
 
         mUrlExternalForm2Modified.put(urlExternalForm, modified);

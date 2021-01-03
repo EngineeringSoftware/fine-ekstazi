@@ -28,7 +28,6 @@ import org.ekstazi.data.RegData;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.util.FileUtil;
-import org.ekstazi.Names;
 
 abstract class AbstractCheck {
 
@@ -38,7 +37,7 @@ abstract class AbstractCheck {
     /** Hasher */
     protected final Hasher mHasher;
 
-    protected static HashMap<String, Boolean> fileChanged = new HashMap<>();
+    protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
     /**
      * Constructor.
      */
@@ -82,7 +81,7 @@ abstract class AbstractCheck {
         // TODO: if checksum of ekstazi differs, compare ChangeTypes
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            Boolean changed = fileChanged.get(fileName);
+            Boolean changed = fileChangedCache.get(fileName);
 //            System.out.println("AbstractCheck ChangeTypes.fileChanged: " + fileChanged);
             if (changed != null){
 //                System.out.println("AbstractCheck: " + changed + " " + fileName);
@@ -91,20 +90,19 @@ abstract class AbstractCheck {
             ChangeTypes curChangeTypes;
             try {
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
-                curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
-                        new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
-                if (preChangeTypes != null && preChangeTypes.equals(curChangeTypes)){
-                    fileChanged.put(fileName, false);
-//                    System.out.println("AbstractCheck (not changed): " + fileName);
-                    return false;
+                File curClassFile = new File(urlExternalForm.substring(urlExternalForm.indexOf("/")));
+                if (!curClassFile.exists()) {
+                    changed = true;
+                } else {
+                    curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
+                            new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
+                    changed = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
                 }
-            } catch (ClassNotFoundException | IOException e) {
-//                System.out.println("[hasHashChanged] 102 changed: " + fileName);
-//                fileChanged.put(fileName, true);
-//                ChangeTypes.toFile(fileName, curChangeTypes);
+                fileChangedCache.put(fileName, changed);
+                return changed;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-//            System.out.println("AbstractCheck (changed): " + fileName);
-            fileChanged.put(fileName, true);
         }
         return anyDiff;
     }
