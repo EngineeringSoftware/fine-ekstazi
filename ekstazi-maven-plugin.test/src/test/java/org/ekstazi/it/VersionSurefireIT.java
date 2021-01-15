@@ -80,6 +80,7 @@ public class VersionSurefireIT extends AbstractSurefireIT {
         String surefireVersion = "-DsurefireVersion=2.3";
 
         EkstaziPaths.removeEkstaziDirectories(getClass(), testName);
-        executeCleanTestStep(testName, 1, 0, surefireVersion);
+        executeCleanTestStep(testName, 0, 4, surefireVersion);
+        executeCleanTestStep(testName, 0, 0, surefireVersion);
     }
 }
