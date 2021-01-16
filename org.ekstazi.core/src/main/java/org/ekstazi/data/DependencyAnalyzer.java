@@ -296,16 +296,6 @@ public final class DependencyAnalyzer {
      * returns true; false otherwise.
      */
     private boolean hasHashChanged(Set<RegData> regData) {
-//        if (Config.FINERTS_ON_V) {
-//            boolean changed = false;
-//            for (RegData el : regData) {
-//                if (hasHashChanged(mHasher, el)) {
-//                    Log.d("CHANGED", el.getURLExternalForm());
-//                    changed = true;
-//                }
-//            }
-//            return changed;
-//        }else {
             for (RegData el : regData) {
                 if (hasHashChanged(mHasher, el)) {
                     Log.d("CHANGED", el.getURLExternalForm());
@@ -313,7 +303,6 @@ public final class DependencyAnalyzer {
                 }
             }
             return false;
-//        }
     }
 
     /**

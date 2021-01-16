@@ -18,16 +18,21 @@ package org.ekstazi.check;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.ekstazi.Config;
+import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.data.RegData;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.util.FileUtil;
+
+import static org.ekstazi.smethods.MethodLevelSelection.getChangedMethods;
+import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.*;
+import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.test2methods;
 
 abstract class AbstractCheck {
 
@@ -38,6 +43,8 @@ abstract class AbstractCheck {
     protected final Hasher mHasher;
 
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
+
+    protected Set<String> affectedTestSet;
     /**
      * Constructor.
      */
@@ -51,7 +58,50 @@ abstract class AbstractCheck {
     public abstract void includeAffected(Set<String> affectedClasses);
 
     protected boolean isAffected(String dirName, String className, String methodName) {
-        return isAffected(mStorer.load(dirName, className, methodName));
+        if (Config.FINERTS_ON_V){
+            boolean classLevelResult = isAffected(mStorer.load(dirName, className, methodName));
+            if (classLevelResult){
+                if (affectedTestSet == null){
+                    try {
+                        List<ClassReader> classReaderList = getClassReaders("");
+
+                        // find the methods that each method calls
+                        findMethodsinvoked(classReaderList);
+
+                        // suppose that test classes have Test in their class name
+                        Set<String> testClasses = new HashSet<>();
+                        for (String method : methodName2MethodNames.keySet()) {
+                            String curClassName = method.split("#")[0];
+                            if (curClassName.contains("Test")) {
+                                testClasses.add(curClassName);
+                            }
+                        }
+                        test2methods = getDeps(methodName2MethodNames, testClasses);
+
+                        Set<String> changedMethods = getChangedMethods(testClasses);
+
+                        affectedTestSet = new HashSet<>();
+                        for (String test : test2methods.keySet()) {
+                            for (String changedMethod : changedMethods) {
+                                if (test2methods.get(test).contains(changedMethod)) {
+                                    affectedTestSet.add(test);
+                                    break;
+                                }
+                            }
+                        }
+                        affectedTestSet = affectedTestSet.stream().map(s -> s.replace("/", ".")).collect(Collectors.toSet());
+//                        System.out.println(affectedTestSet);
+                    }catch (Exception e){
+                        return true;
+                    }
+                }
+//                System.out.println(className + " " + affectedTestSet.contains(className));
+                return affectedTestSet.contains(className);
+            }
+            return false;
+        }else {
+            return isAffected(mStorer.load(dirName, className, methodName));
+        }
     }
 
     protected boolean isAffected(Set<RegData> regData) {
