@@ -1,11 +1,14 @@
 package org.ekstazi.smethods;
 
 import org.ekstazi.asm.ClassReader;
+import org.ekstazi.data.Storer;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -93,8 +96,9 @@ public class MethodLevelStaticDepsBuilder{
             classReader.accept(visitor, ClassReader.SKIP_DEBUG);
         }
         for (ClassReader classReader : classReaderList){
+            Set<String> classesInConstantPool = ConstantPoolParser.getClassNames(ByteBuffer.wrap(classReader.b));
             //TODO: not keep methodName2MethodNames, hierarchies as fields
-            MethodCallCollectorCV visitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames);
+            MethodCallCollectorCV visitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames, classesInConstantPool);
             classReader.accept(visitor, ClassReader.SKIP_DEBUG);
         }
     }
@@ -132,12 +136,12 @@ public class MethodLevelStaticDepsBuilder{
     }
 
     public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
+        // filter the test2methods with regData
         Map<String, Set<String>> test2methods = new HashMap<>();
         for (String testClass : testClasses){
             Set<String> visitedMethods = new TreeSet<>();
             //BFS
             ArrayDeque<String> queue = new ArrayDeque<>();
-
             //initialization
             for (String method : methodName2MethodNames.keySet()){
                 if (method.startsWith(testClass+"#")){
@@ -162,23 +166,5 @@ public class MethodLevelStaticDepsBuilder{
         }
         return test2methods;
     }
-
-    public static Set<String> getMethodsFromHierarchies(String currentMethod, Map<String, Set<String>> hierarchies){
-        Set<String> res = new HashSet<>();
-        // consider the superclass/subclass, do not have to consider the constructors
-        // TODO: and fields of superclass/subclass
-        // TODO: regular expression is expensive
-        String currentMethodSig = currentMethod.split("#")[1];
-        if (!currentMethodSig.startsWith("<init>") && !currentMethodSig.startsWith("<clinit>")) {
-            String currentClass = currentMethod.split("#")[0];
-            for (String hClass : hierarchies.getOrDefault(currentClass, new HashSet<>())) {
-                String hMethod = hClass + "#" + currentMethodSig;
-                res.addAll(getMethodsFromHierarchies(hMethod, hierarchies));
-                res.add(hMethod);
-            }
-        }
-        return res;
-    }
-
 
 }

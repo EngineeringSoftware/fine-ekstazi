@@ -44,7 +44,9 @@ abstract class AbstractCheck {
 
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
-    protected Set<String> affectedTestSet;
+    protected static Set<String> changedMethods;
+    // method level changed classes
+    protected static Set<String> mlChangedClasses;
     /**
      * Constructor.
      */
@@ -59,48 +61,106 @@ abstract class AbstractCheck {
 
     protected boolean isAffected(String dirName, String className, String methodName) {
         if (Config.FINERTS_ON_V){
-            boolean classLevelResult = isAffected(mStorer.load(dirName, className, methodName));
-            if (classLevelResult){
-                if (affectedTestSet == null){
-                    try {
-                        List<ClassReader> classReaderList = getClassReaders("");
+            if (changedMethods == null){
+                try {
+                    List<ClassReader> classReaderList = getClassReaders(".");
 
-                        // find the methods that each method calls
-                        findMethodsinvoked(classReaderList);
+                    // find the methods that each method calls
+                    findMethodsinvoked(classReaderList);
 
-                        // suppose that test classes have Test in their class name
-                        Set<String> testClasses = new HashSet<>();
-                        for (String method : methodName2MethodNames.keySet()) {
-                            String curClassName = method.split("#")[0];
-                            if (curClassName.contains("Test")) {
-                                testClasses.add(curClassName);
-                            }
+                    // suppose that test classes have Test in their class name
+                    Set<String> testClasses = new HashSet<>();
+                    for (String method : methodName2MethodNames.keySet()) {
+                        String curClassName = method.split("#|\\$")[0];
+                        if (curClassName.contains("Test")) {
+                            testClasses.add(curClassName);
                         }
-                        test2methods = getDeps(methodName2MethodNames, testClasses);
+                    }
+                    test2methods = getDeps(methodName2MethodNames, testClasses);
 
-                        Set<String> changedMethods = getChangedMethods(testClasses);
-
-                        affectedTestSet = new HashSet<>();
-                        for (String test : test2methods.keySet()) {
-                            for (String changedMethod : changedMethods) {
-                                if (test2methods.get(test).contains(changedMethod)) {
-                                    affectedTestSet.add(test);
-                                    break;
-                                }
-                            }
-                        }
-                        affectedTestSet = affectedTestSet.stream().map(s -> s.replace("/", ".")).collect(Collectors.toSet());
+//                    System.out.println("test2methods" + test2methods.size());
+                    changedMethods = getChangedMethods(testClasses);
+                    mlChangedClasses = new HashSet<>();
+                    for (String changedMethod : changedMethods){
+                        mlChangedClasses.add(changedMethod.split("#")[0]);
+                    }
+//                    System.out.println("method level changed classes: " + mlChangedClasses);
+//                    System.out.println(methodName2MethodNames.size());
+//                    saveMap(methodName2MethodNames, "graph.txt");
+//                    saveMap(test2methods, "methods.txt");
+//
+//                        affectedTestSet = new HashSet<>();
+//                        for (String test : test2methods.keySet()) {
+//                            for (String changedMethod : changedMethods) {
+//                                if (test2methods.get(test).contains(changedMethod)) {
+//                                    affectedTestSet.add(test);
+//                                    break;
+//                                }
+//                            }
+//                        }
+//                        affectedTestSet = affectedTestSet.stream().map(s -> s.replace("/", ".")).collect(Collectors.toSet());
 //                        System.out.println(affectedTestSet);
-                    }catch (Exception e){
+                }catch (Exception e){
+                    throw new RuntimeException(e);
+                }
+            }
+//                System.out.println(className + " " + affectedTestSet.contains(className));
+            String internalClassName = className.replace(".", "/");
+            return isAffected(internalClassName, mStorer.load(dirName, className, methodName));
+        }else {
+            return isAffected(mStorer.load(dirName, className, methodName));
+        }
+    }
+
+    protected boolean isAffected(String testClass, Set<RegData> regData){
+        if (regData == null || regData.size() == 0){
+            return true;
+        }
+        Set<String> clModifiedClasses = new HashSet<>();
+        for (RegData el : regData) {
+            if (hasHashChanged(mHasher, el)) {
+                String urlExternalForm = el.getURLExternalForm();
+                int i = urlExternalForm.indexOf("target/classes/");
+                if (i == -1)
+                    i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
+                else
+                    i = i + + "target/classes/".length();
+                String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
+                clModifiedClasses.add(internalName);
+            }
+        }
+
+        if (clModifiedClasses.size() == 0){
+            return false;
+        }
+
+//        System.out.println("test class Name: " + testClass);
+//        System.out.println("class level modified classes: " + clModifiedClasses);
+//        System.out.println();
+
+        Set<String> mlUsedClasses = new HashSet<>();
+        Set<String> mlUsedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
+        for (String mulUsedMethod: mlUsedMethods){
+            mlUsedClasses.add(mulUsedMethod.split("#")[0]);
+        }
+        if (mlUsedClasses.containsAll(clModifiedClasses)){
+            // method level
+            for (String clModifiedClass : clModifiedClasses){
+                // todo
+                for (String method : changedMethods){
+                    if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
                         return true;
                     }
                 }
-//                System.out.println(className + " " + affectedTestSet.contains(className));
-                return affectedTestSet.contains(className);
             }
             return false;
-        }else {
-            return isAffected(mStorer.load(dirName, className, methodName));
+        }else{
+            // reflection
+//            System.out.println("reflection");
+//            System.out.println("mlUsedClasses: " + mlUsedClasses);
+//            System.out.println("clModifiedClasses: " + clModifiedClasses);
+//            System.out.println();
+            return true;
         }
     }
 

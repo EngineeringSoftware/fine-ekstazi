@@ -17,19 +17,24 @@ public class MethodCallCollectorCV extends ClassVisitor {
     private String mClassName;
 
     Map<String, Set<String>> methodName2InvokedMethodNames;
+    Map<String, Set<String>> method2usage;
     Map<String, Set<String>> hierarchy_parents;
     Map<String, Set<String>> hierarchy_children;
     Map<String, Set<String>> class2ContainedMethodNames;
+    Set<String> classesInConstantPool;
 
     public MethodCallCollectorCV(Map<String, Set<String>> methodName2MethodNames,
                                  Map<String, Set<String>> hierarchy_parents,
                                  Map<String, Set<String>> hierarchy_children,
-                                 Map<String, Set<String>> class2ContainedMethodNames) {
+                                 Map<String, Set<String>> class2ContainedMethodNames,
+                                 Set<String> classesInConstantPool
+    ) {
         super(Opcodes.ASM5);
         this.methodName2InvokedMethodNames = methodName2MethodNames;
         this.hierarchy_parents = hierarchy_parents;
         this.hierarchy_children = hierarchy_children;
         this.class2ContainedMethodNames = class2ContainedMethodNames;
+        this.classesInConstantPool = classesInConstantPool;
     }
 
     @Override
@@ -64,9 +69,11 @@ public class MethodCallCollectorCV extends ClassVisitor {
                     }
                     if (!methodSig.startsWith("<init>") && !methodSig.startsWith("<clinit>")) {
                         for (String subClass : hierarchy_children.getOrDefault(owner, new HashSet<>())) {
-                            if (class2ContainedMethodNames.getOrDefault(subClass, new HashSet<>()).contains(methodSig)) {
-                                String invokedKey = subClass + "#" + methodSig;
-                                mInvokedMethods.add(invokedKey);
+                            if (classesInConstantPool.contains(subClass)) {
+                                if (class2ContainedMethodNames.getOrDefault(subClass, new HashSet<>()).contains(methodSig)) {
+                                    String invokedKey = subClass + "#" + methodSig;
+                                    mInvokedMethods.add(invokedKey);
+                                }
                             }
                         }
                     }
