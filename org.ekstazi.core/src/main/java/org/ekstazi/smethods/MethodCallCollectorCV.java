@@ -76,6 +76,7 @@ public class MethodCallCollectorCV extends ClassVisitor {
                                 }
                             }
                         }
+
                     }
 //	                int INVOKEVIRTUAL = 182;
 //				    int INVOKESPECIAL = 183;
