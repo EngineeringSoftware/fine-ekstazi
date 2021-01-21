@@ -81,7 +81,7 @@ public class MethodCallCollectorCV extends ClassVisitor {
                                 String invokedKey = subClass + "#" +  outerMethodSig;
                                 methodName2InvokedMethodNames.computeIfAbsent(invokedKey, k -> new TreeSet<>()).add(key);
 
-                                method2usage.computeIfAbsent(key, k -> new TreeSet<>()).add(invokedKey);
+//                                method2usage.computeIfAbsent(key, k -> new TreeSet<>()).add(invokedKey);
                             }
                         }
 
