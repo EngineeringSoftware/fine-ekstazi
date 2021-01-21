@@ -49,7 +49,8 @@ public class MethodCallCollectorCV extends ClassVisitor {
         if (outerName.equals(PROJECT_PACKAGE)){
             return null;
         }
-        String key = mClassName + "#" + outerName + outerDesc.substring(0, outerDesc.indexOf(")")+1);
+        String outerMethodSig = outerName + outerDesc.substring(0, outerDesc.indexOf(")")+1);
+        String key = mClassName + "#" + outerMethodSig;
         Set<String> mInvokedMethods = methodName2InvokedMethodNames.computeIfAbsent(key, k -> new TreeSet<>());
         return new MethodVisitor(Opcodes.ASM5) {
             @Override
@@ -74,6 +75,13 @@ public class MethodCallCollectorCV extends ClassVisitor {
                                     String invokedKey = subClass + "#" + methodSig;
                                     mInvokedMethods.add(invokedKey);
                                 }
+                            }
+                            // deal with test class in a special way, all the @test method in hierarchy should be considered
+                            if(subClass.contains("Test") && owner.contains("Test")){
+                                String invokedKey = subClass + "#" +  outerMethodSig;
+                                methodName2InvokedMethodNames.computeIfAbsent(invokedKey, k -> new TreeSet<>()).add(key);
+
+                                method2usage.computeIfAbsent(key, k -> new TreeSet<>()).add(invokedKey);
                             }
                         }
 
