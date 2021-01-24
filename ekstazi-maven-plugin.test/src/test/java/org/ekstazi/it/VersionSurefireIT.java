@@ -74,13 +74,13 @@ public class VersionSurefireIT extends AbstractSurefireIT {
         executeCleanTestStep(testName, 0, 0, surefireVersion);
     }
 
-    @Test
-    public void testLightekstaziWithSurefire2_3() throws Exception {
-        String testName = "lightekstazi";
-        String surefireVersion = "-DsurefireVersion=2.3";
-
-        EkstaziPaths.removeEkstaziDirectories(getClass(), testName);
-        executeCleanTestStep(testName, 0, 4, surefireVersion);
-        executeCleanTestStep(testName, 0, 0, surefireVersion);
-    }
+//    @Test
+//    public void testLightekstaziWithSurefire2_3() throws Exception {
+//        String testName = "lightekstazi";
+//        String surefireVersion = "-DsurefireVersion=2.3";
+//
+//        EkstaziPaths.removeEkstaziDirectories(getClass(), testName);
+//        executeCleanTestStep(testName, 0, 4, surefireVersion);
+//        executeCleanTestStep(testName, 0, 0, surefireVersion);
+//    }
 }
