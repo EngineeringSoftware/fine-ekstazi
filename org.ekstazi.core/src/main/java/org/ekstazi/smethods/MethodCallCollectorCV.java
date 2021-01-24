@@ -76,14 +76,14 @@ public class MethodCallCollectorCV extends ClassVisitor {
                                     mInvokedMethods.add(invokedKey);
                                 }
                             }
-                            // deal with test class in a special way, all the @test method in hierarchy should be considered
-                            if(subClass.contains("Test") && owner.contains("Test")){
-                                String subClassKey = subClass + "#" + methodSig;
-                                String superClassKey = owner + "#" + methodSig;
-                                methodName2InvokedMethodNames.computeIfAbsent(subClassKey, k -> new TreeSet<>()).add(superClassKey);
-
-//                                method2usage.computeIfAbsent(superClassKey, k -> new TreeSet<>()).add(subClassKey);
-                            }
+//                            // deal with test class in a special way, all the @test method in hierarchy should be considered
+//                            if(subClass.contains("Test") && owner.contains("Test")){
+//                                String subClassKey = subClass + "#" + methodSig;
+//                                String superClassKey = owner + "#" + methodSig;
+//                                methodName2InvokedMethodNames.computeIfAbsent(subClassKey, k -> new TreeSet<>()).add(superClassKey);
+//
+////                                method2usage.computeIfAbsent(superClassKey, k -> new TreeSet<>()).add(subClassKey);
+//                            }
                         }
 
                     }

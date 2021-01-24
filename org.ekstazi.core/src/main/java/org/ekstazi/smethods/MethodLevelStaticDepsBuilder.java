@@ -101,6 +101,18 @@ public class MethodLevelStaticDepsBuilder{
             MethodCallCollectorCV visitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames, classesInConstantPool);
             classReader.accept(visitor, ClassReader.SKIP_DEBUG);
         }
+        // deal with test class in a special way, all the @test method in hierarchy should be considered
+        for (String superClass : hierarchy_children.keySet()) {
+            if (superClass.contains("Test")) {
+                for (String subClass : hierarchy_children.getOrDefault(superClass, new HashSet<>())) {
+                    for (String methodSig : class2ContainedMethodNames.getOrDefault(superClass, new HashSet<>())) {
+                        String subClassKey = subClass + "#" + methodSig;
+                        String superClassKey = superClass + "#" + methodSig;
+                        methodName2MethodNames.computeIfAbsent(subClassKey, k -> new TreeSet<>()).add(superClassKey);
+                    }
+                }
+            }
+        }
     }
 
     public static void saveMap(Map<String, Set<String>> mapToStore, String fileName) throws Exception {
