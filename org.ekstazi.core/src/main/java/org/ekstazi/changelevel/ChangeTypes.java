@@ -9,11 +9,9 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.*;;
 import java.util.stream.Collectors;
 
-import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.PARAMETER_TYPE_SPECIALIZATION;
 import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
 
 public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
@@ -28,10 +26,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     public TreeMap<String, String> constructorsMap;
     public TreeMap<String, String> methodMap;
     public Set<String> fieldList;
-    public HashMap<String, String> exceptionMap;
-    public HashMap<String, String> annotations;
-    public int classModifier;
-    public String[] classInterfaces;
     public String curClass = "";
     public String superClass = "";
     public String urlExternalForm = "";
@@ -44,33 +38,11 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         methodMap = new TreeMap<>();
         instanceFieldMap = new TreeMap<>();
         staticFieldMap = new TreeMap<>();
-        exceptionMap = new HashMap<>();
-        annotations = new HashMap<>();
-        classInterfaces = new String[0];
         fieldList = new HashSet<>();
         curClass = "";
         superClass = "";
         urlExternalForm = "";
     }
-
-//    /** Read the object from Base64 string. */
-//    public static Object fromString(String s) throws IOException,
-//            ClassNotFoundException {
-//        byte [] data = Base64.getDecoder().decode( s );
-//        ObjectInputStream ois = new ObjectInputStream(
-//                new ByteArrayInputStream(  data ) );
-//        Object o  = ois.readObject();
-//        ois.close();
-//        return o;
-//    }
-//    /** Write the object to a Base64 string. */
-//    public static String toString( Serializable o ) throws IOException {
-//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//        ObjectOutputStream oos = new ObjectOutputStream( baos );
-//        oos.writeObject( o );
-//        oos.close();
-//        return Base64.getEncoder().encodeToString(baos.toByteArray());
-//    }
 
     public static ChangeTypes fromFile(String fileName){
         ChangeTypes c = null;
@@ -131,12 +103,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
         boolean modified;
 
-        // field changes
-//        if (!sortedString(fieldList.toString()).equals(sortedString(other.fieldList.toString()))){
-//            return false;
-//        }
         if (fieldChange(fieldList, other.fieldList)){
-//            System.out.println("field changes");
             return false;
         }
 
@@ -144,14 +111,12 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         TreeMap<String, String> oldConstructor = this.constructorsMap;
 
         if (newConstructor.size() != oldConstructor.size()){
-//            System.out.println("number of constructor differs");
             return false;
         }
 
         // constructor changes
         for (String s : newConstructor.keySet()){
             if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
-//                System.out.println("constructor changes");
                 return false;
             }
         }
@@ -168,11 +133,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         }
         modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), hasHierarchy);
         return !modified;
-    }
-
-    public String sortedString(String str){
-        return  str.chars() // IntStream
-                .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
     }
 
     public HashSet<String> listTestClasses(){

@@ -78,33 +78,15 @@ abstract class AbstractCheck {
                     }
                     test2methods = getDeps(methodName2MethodNames, testClasses);
 
-//                    System.out.println("test2methods" + test2methods.size());
                     changedMethods = getChangedMethods(testClasses);
                     mlChangedClasses = new HashSet<>();
                     for (String changedMethod : changedMethods){
                         mlChangedClasses.add(changedMethod.split("#")[0]);
                     }
-//                    System.out.println("method level changed classes: " + mlChangedClasses);
-//                    System.out.println(methodName2MethodNames.size());
-//                    saveMap(methodName2MethodNames, "graph.txt");
-//                    saveMap(test2methods, "methods.txt");
-//
-//                        affectedTestSet = new HashSet<>();
-//                        for (String test : test2methods.keySet()) {
-//                            for (String changedMethod : changedMethods) {
-//                                if (test2methods.get(test).contains(changedMethod)) {
-//                                    affectedTestSet.add(test);
-//                                    break;
-//                                }
-//                            }
-//                        }
-//                        affectedTestSet = affectedTestSet.stream().map(s -> s.replace("/", ".")).collect(Collectors.toSet());
-//                        System.out.println(affectedTestSet);
                 }catch (Exception e){
                     throw new RuntimeException(e);
                 }
             }
-//                System.out.println(className + " " + affectedTestSet.contains(className));
             String internalClassName = className.replace(".", "/");
             return isAffected(internalClassName, mStorer.load(dirName, className, methodName));
         }else {
@@ -134,10 +116,6 @@ abstract class AbstractCheck {
             return false;
         }
 
-//        System.out.println("test class Name: " + testClass);
-//        System.out.println("class level modified classes: " + clModifiedClasses);
-//        System.out.println();
-
         Set<String> mlUsedClasses = new HashSet<>();
         Set<String> mlUsedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
         for (String mulUsedMethod: mlUsedMethods){
@@ -156,10 +134,6 @@ abstract class AbstractCheck {
             return false;
         }else{
             // reflection
-//            System.out.println("reflection");
-//            System.out.println("mlUsedClasses: " + mlUsedClasses);
-//            System.out.println("clModifiedClasses: " + clModifiedClasses);
-//            System.out.println();
             return true;
         }
     }

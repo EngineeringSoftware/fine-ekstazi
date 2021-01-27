@@ -226,9 +226,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
     public ChangeTypes getChangeTypes(){
         ChangeTypes c = new ChangeTypes();
-        c.annotations = this.annotations;
-        c.classInterfaces = this.classInterfaces;
-        c.classModifier = this.classModifier;
         c.constructorsMap = this.constructorsMap;
         c.instanceMethodMap = this.instanceMethodMap;
         c.staticMethodMap = this.staticMethodMap;

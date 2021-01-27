@@ -49,7 +49,7 @@ public class MethodLevelStaticDepsBuilder{
         // suppose that test classes have Test in their class name
         Set<String> testClasses = new HashSet<>();
         for (String method : methodName2MethodNames.keySet()){
-            String className = method.split("#")[0];
+            String className = method.split("#|\\$")[0];
             if (className.contains("Test")){
                 testClasses.add(className);
             }
