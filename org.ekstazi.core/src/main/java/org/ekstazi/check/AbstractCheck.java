@@ -75,6 +75,7 @@ abstract class AbstractCheck {
                     }
                     test2methods = getDeps(methodName2MethodNames, testClasses);
                     changedMethods = getChangedMethods(testClasses);
+
                 }catch (Exception e){
                     throw new RuntimeException(e);
                 }
@@ -158,9 +159,7 @@ abstract class AbstractCheck {
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
             Boolean changed = fileChangedCache.get(fileName);
-//            System.out.println("AbstractCheck ChangeTypes.fileChanged: " + fileChanged);
             if (changed != null){
-//                System.out.println("AbstractCheck: " + changed + " " + fileName);
                 return changed;
             }
             ChangeTypes curChangeTypes;

@@ -2,7 +2,6 @@ package org.ekstazi.smethods;
 
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.util.FileUtil;
-import org.ekstazi.asm.ClassReader;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +13,6 @@ import java.util.stream.Collectors;
 
 import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
 import static org.ekstazi.smethods.Macros.*;
-import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.*;
 
 public class MethodLevelSelection {
 
@@ -70,13 +68,11 @@ public class MethodLevelSelection {
                     curChangeTypes.constructorsMap.keySet().forEach(m -> methods.add(curChangeTypes.curClass + "#" +
                             m.substring(0, m.indexOf(")")+1)));
                     res.addAll(methods);
-//                    ChangeTypes.toFile(changeTypePath, curChangeTypes);
                 }else {
                     changeTypePaths.remove(changeTypePath);
                     ChangeTypes preChangeTypes = ChangeTypes.fromFile(changeTypePath);
 
                     if (!preChangeTypes.equals(curChangeTypes)) {
-//                        ChangeTypes.toFile(changeTypePath, curChangeTypes);
                         res.addAll(getChangedMethodsPerChangeType(preChangeTypes.methodMap,
                                 curChangeTypes.methodMap, curChangeTypes.curClass, allTests));
                         res.addAll(getChangedMethodsPerChangeType(preChangeTypes.constructorsMap,
