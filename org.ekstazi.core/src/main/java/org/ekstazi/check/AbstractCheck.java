@@ -45,8 +45,6 @@ abstract class AbstractCheck {
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
     protected static Set<String> changedMethods;
-    // method level changed classes
-    protected static Set<String> mlChangedClasses;
     /**
      * Constructor.
      */
@@ -76,12 +74,7 @@ abstract class AbstractCheck {
                         }
                     }
                     test2methods = getDeps(methodName2MethodNames, testClasses);
-
                     changedMethods = getChangedMethods(testClasses);
-                    mlChangedClasses = new HashSet<>();
-                    for (String changedMethod : changedMethods){
-                        mlChangedClasses.add(changedMethod.split("#")[0]);
-                    }
                 }catch (Exception e){
                     throw new RuntimeException(e);
                 }
