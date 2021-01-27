@@ -70,10 +70,9 @@ abstract class AbstractCheck {
 
                     // suppose that test classes have Test in their class name
                     Set<String> testClasses = new HashSet<>();
-                    for (String method : methodName2MethodNames.keySet()) {
-                        String curClassName = method.split("#|\\$")[0];
-                        if (curClassName.contains("Test")) {
-                            testClasses.add(curClassName);
+                    for (ClassReader c : classReaderList){
+                        if (c.getClassName().contains("Test")){
+                            testClasses.add(c.getClassName().split("\\$")[0]);
                         }
                     }
                     test2methods = getDeps(methodName2MethodNames, testClasses);
