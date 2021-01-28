@@ -172,9 +172,7 @@ public class MethodLevelStaticDepsBuilder{
                 }
             }
             testClass = testClass.split("\\$")[0];
-            Set<String> existedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
-            existedMethods.addAll(visitedMethods);
-            test2methods.put(testClass, existedMethods);
+            test2methods.put(testClass, visitedMethods);
         }
         return test2methods;
     }
