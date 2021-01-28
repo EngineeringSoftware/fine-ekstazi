@@ -17,7 +17,6 @@ public class MethodCallCollectorCV extends ClassVisitor {
     private String mClassName;
 
     Map<String, Set<String>> methodName2InvokedMethodNames;
-    Map<String, Set<String>> method2usage;
     Map<String, Set<String>> hierarchy_parents;
     Map<String, Set<String>> hierarchy_children;
     Map<String, Set<String>> class2ContainedMethodNames;
@@ -90,22 +89,22 @@ public class MethodCallCollectorCV extends ClassVisitor {
 
             @Override
             public void visitFieldInsn(int opcode, String owner, String name, String desc){
-                String field = owner + "#" + name;
-                // outerDesc.equals("<init>")
-                // non static field would be invoked through constructor
-                if ( (opcode == Opcodes.PUTSTATIC && outerName.equals("<clinit>")) || (opcode == Opcodes.PUTFIELD && outerName.equals("<init>"))) {
-                    // || hierarchies.getOrDefault(mClassName, new HashSet<>()).contains(owner)
-                    if (owner.equals(mClassName)) {
-                        Set methods = methodName2InvokedMethodNames.getOrDefault(field, new HashSet<>());
-                        methods.add(key);
-                        methodName2InvokedMethodNames.put(field, methods);
+                if (!owner.startsWith("java/")  && !owner.startsWith("org/junit/")) {
+                    String field = owner + "#" + name;
+                    // outerDesc.equals("<init>")
+                    // non static field would be invoked through constructor
+                    if ((opcode == Opcodes.PUTSTATIC && outerName.equals("<clinit>")) || (opcode == Opcodes.PUTFIELD && outerName.equals("<init>"))) {
+                        if (owner.equals(mClassName)) {
+                            Set methods = methodName2InvokedMethodNames.getOrDefault(field, new HashSet<>());
+                            methods.add(key);
+                            methodName2InvokedMethodNames.put(field, methods);
+                        }
                     }
+                    mInvokedMethods.add(field);
                 }
-                mInvokedMethods.add(field);
 //                  Opcodes.GETFIELD, Opcodes.PUTFIELD, Opcodes.GETSTATIC, Opcodes.PUTSTATIC
                 super.visitFieldInsn(opcode, owner, name, desc);
             }
-
         };
     }
 
