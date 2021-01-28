@@ -61,6 +61,7 @@ abstract class AbstractCheck {
         if (Config.FINERTS_ON_V){
             if (changedMethods == null){
                 try {
+//                    long start = System.currentTimeMillis();
                     List<ClassReader> classReaderList = getClassReaders(".");
 
                     // find the methods that each method calls
@@ -75,7 +76,8 @@ abstract class AbstractCheck {
                     }
                     test2methods = getDeps(methodName2MethodNames, testClasses);
                     changedMethods = getChangedMethods(testClasses);
-
+//                    long end = System.currentTimeMillis();
+//                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
                 }catch (Exception e){
                     throw new RuntimeException(e);
                 }

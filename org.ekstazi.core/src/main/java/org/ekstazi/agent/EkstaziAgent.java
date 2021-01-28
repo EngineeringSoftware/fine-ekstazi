@@ -73,6 +73,7 @@ public class EkstaziAgent {
             if (initSingleCoverageMode(Config.SINGLE_NAME_V, instrumentation)) {
                 instrumentation.addTransformer(new EkstaziCFT(), true);
             }
+
         } else if (Config.MODE_V == Config.AgentMode.SINGLEFORK) {
             if (initSingleCoverageMode(Config.SINGLE_NAME_V, instrumentation)) {
                 instrumentation.addTransformer(new CollectLoadedCFT(), false);
