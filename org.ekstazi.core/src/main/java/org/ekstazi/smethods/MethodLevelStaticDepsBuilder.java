@@ -96,9 +96,9 @@ public class MethodLevelStaticDepsBuilder{
             classReader.accept(visitor, ClassReader.SKIP_DEBUG);
         }
         for (ClassReader classReader : classReaderList){
-            Set<String> classesInConstantPool = ConstantPoolParser.getClassNames(ByteBuffer.wrap(classReader.b));
+//            Set<String> classesInConstantPool = ConstantPoolParser.getClassNames(ByteBuffer.wrap(classReader.b));
             //TODO: not keep methodName2MethodNames, hierarchies as fields
-            MethodCallCollectorCV visitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames, classesInConstantPool);
+            MethodCallCollectorCV visitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames);
             classReader.accept(visitor, ClassReader.SKIP_DEBUG);
         }
         // deal with test class in a special way, all the @test method in hierarchy should be considered
