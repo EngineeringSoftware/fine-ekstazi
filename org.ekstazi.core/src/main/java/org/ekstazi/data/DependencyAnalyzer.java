@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.ekstazi.Config;
+import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.hash.Hasher;
@@ -32,6 +33,9 @@ import org.ekstazi.monitor.CoverageMonitor;
 import org.ekstazi.research.Research;
 import org.ekstazi.util.FileUtil;
 import org.ekstazi.util.LRUMap;
+
+import static org.ekstazi.smethods.MethodLevelSelection.getChangedMethods;
+import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.*;
 
 /**
  * Analyzes regression data to check if resource has been modified.
@@ -71,6 +75,8 @@ public final class DependencyAnalyzer {
     /** a cache to store if the ChangeTypes changes */
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
+    protected static Set<String> changedMethods;
+
     /**
      * Constructor.
      */
@@ -100,7 +106,12 @@ public final class DependencyAnalyzer {
     public synchronized boolean isAffected(String name) {
         String fullMethodName = name + "." + COV_EXT;
         Set<RegData> regData = mStorer.load(mRootDir, name, COV_EXT);
-        boolean isAffected = isAffected(regData);
+        boolean isAffected;
+        if (Config.FINERTS_ON_V) {
+            isAffected = isAffected(name.replace(".", "/"), regData);
+        }else {
+            isAffected = isAffected(regData);
+        }
         recordTestAffectedOutcome(fullMethodName, isAffected);
         return isAffected;
     }
@@ -153,7 +164,11 @@ public final class DependencyAnalyzer {
         boolean isAffected = true;
         String fullMethodName = className + "." + CLASS_EXT;
         Set<RegData> regData = mStorer.load(mRootDir, className, CLASS_EXT);
-        isAffected = isAffected(regData);
+        if (Config.FINERTS_ON_V) {
+            isAffected = isAffected(className.replace(".", "/"), regData);
+        }else {
+            isAffected = isAffected(regData);
+        }
         recordTestAffectedOutcome(fullMethodName, isAffected);
         return isAffected;
     }
@@ -212,7 +227,12 @@ public final class DependencyAnalyzer {
         }
 
         Set<RegData> regData = mStorer.load(mRootDir, className, methodName);
-        boolean isAffected = isAffected(regData);
+        boolean isAffected;
+        if (Config.FINERTS_ON_V) {
+            isAffected = isAffected(className.replace(".", "/"), regData);
+        }else {
+            isAffected = isAffected(regData);
+        }
         if (isRecordAffectedOutcome) {
             recordTestAffectedOutcome(fullMethodName, isAffected);
         }
@@ -281,6 +301,82 @@ public final class DependencyAnalyzer {
         mStorer.save(mRootDir, className, methodName, regData);
         // Clean monitor after the test finished the execution
         CoverageMonitor.clean();
+    }
+
+    protected boolean isAffected(String dirName, String className, String methodName) {
+        if (Config.FINERTS_ON_V){
+            if (changedMethods == null){
+                try {
+//                    long start = System.currentTimeMillis();
+                    List<ClassReader> classReaderList = getClassReaders(".");
+
+                    // find the methods that each method calls
+                    findMethodsinvoked(classReaderList);
+
+                    // suppose that test classes have Test in their class name
+                    Set<String> testClasses = new HashSet<>();
+                    for (ClassReader c : classReaderList){
+                        if (c.getClassName().contains("Test")){
+                            testClasses.add(c.getClassName().split("\\$")[0]);
+                        }
+                    }
+                    test2methods = getDeps(methodName2MethodNames, testClasses);
+                    changedMethods = getChangedMethods(testClasses);
+//                    long end = System.currentTimeMillis();
+//                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
+                }catch (Exception e){
+                    throw new RuntimeException(e);
+                }
+            }
+            String internalClassName = className.replace(".", "/");
+            return isAffected(internalClassName, mStorer.load(dirName, className, methodName));
+        }else {
+            return isAffected(mStorer.load(dirName, className, methodName));
+        }
+    }
+
+    protected boolean isAffected(String testClass, Set<RegData> regData){
+        if (regData == null || regData.size() == 0){
+            return true;
+        }
+        Set<String> clModifiedClasses = new HashSet<>();
+        for (RegData el : regData) {
+            if (hasHashChanged(mHasher, el)) {
+                String urlExternalForm = el.getURLExternalForm();
+                int i = urlExternalForm.indexOf("target/classes/");
+                if (i == -1)
+                    i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
+                else
+                    i = i + + "target/classes/".length();
+                String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
+                clModifiedClasses.add(internalName);
+            }
+        }
+
+        if (clModifiedClasses.size() == 0){
+            return false;
+        }
+
+        Set<String> mlUsedClasses = new HashSet<>();
+        Set<String> mlUsedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
+        for (String mulUsedMethod: mlUsedMethods){
+            mlUsedClasses.add(mulUsedMethod.split("#")[0]);
+        }
+        if (mlUsedClasses.containsAll(clModifiedClasses)){
+            // method level
+            for (String clModifiedClass : clModifiedClasses){
+                // todo
+                for (String method : changedMethods){
+                    if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }else{
+            // reflection
+            return true;
+        }
     }
 
     /**
