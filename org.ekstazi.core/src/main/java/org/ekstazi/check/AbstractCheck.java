@@ -58,8 +58,8 @@ abstract class AbstractCheck {
     public abstract void includeAffected(Set<String> affectedClasses);
 
     protected boolean isAffected(String dirName, String className, String methodName) {
-        if (Config.FINERTS_ON_V){
-            if (changedMethods == null){
+        if (Config.FINERTS_ON_V && Config.MRTS_ON_V){
+            if (changedMethods == null) {
                 try {
 //                    long start = System.currentTimeMillis();
                     List<ClassReader> classReaderList = getClassReaders(".");
@@ -69,8 +69,8 @@ abstract class AbstractCheck {
 
                     // suppose that test classes have Test in their class name
                     Set<String> testClasses = new HashSet<>();
-                    for (ClassReader c : classReaderList){
-                        if (c.getClassName().contains("Test")){
+                    for (ClassReader c : classReaderList) {
+                        if (c.getClassName().contains("Test")) {
                             testClasses.add(c.getClassName().split("\\$")[0]);
                         }
                     }
@@ -78,7 +78,7 @@ abstract class AbstractCheck {
                     changedMethods = getChangedMethods(testClasses);
 //                    long end = System.currentTimeMillis();
 //                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
-                }catch (Exception e){
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }
