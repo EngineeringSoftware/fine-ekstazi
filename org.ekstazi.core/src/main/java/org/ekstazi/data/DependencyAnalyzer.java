@@ -304,7 +304,7 @@ public final class DependencyAnalyzer {
     }
 
     protected boolean isAffected(String dirName, String className, String methodName) {
-        if (Config.FINERTS_ON_V){
+        if (Config.FINERTS_ON_V && Config.MRTS_ON_V){
             if (changedMethods == null){
                 try {
 //                    long start = System.currentTimeMillis();

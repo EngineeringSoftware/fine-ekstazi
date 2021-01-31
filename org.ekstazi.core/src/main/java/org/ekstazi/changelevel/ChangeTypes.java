@@ -249,8 +249,8 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
         // one methodmap is empty then the left must be added or deleted.
         if (!hasHierarchy && (oldMethods.size() == 0 || newMethods.size() == 0)){
-            if (testClasses.contains(this.curClass)){
-//                System.out.println("hierarchy");
+            // the class is test class and the test class adds/revises test methods
+            if (testClasses.contains(this.curClass) && newMethods.size()>0){
                 return true;
             }
             return false;

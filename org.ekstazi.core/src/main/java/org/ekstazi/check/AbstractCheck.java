@@ -96,6 +96,7 @@ abstract class AbstractCheck {
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
+                //parse the url from external form to internal form
                 String urlExternalForm = el.getURLExternalForm();
                 int i = urlExternalForm.indexOf("target/classes/");
                 if (i == -1)
@@ -119,7 +120,6 @@ abstract class AbstractCheck {
         if (mlUsedClasses.containsAll(clModifiedClasses)){
             // method level
             for (String clModifiedClass : clModifiedClasses){
-                // todo
                 for (String method : changedMethods){
                     if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
                         return true;
