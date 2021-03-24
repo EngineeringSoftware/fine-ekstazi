@@ -102,7 +102,7 @@ abstract class AbstractCheck {
                 if (i == -1)
                     i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
                 else
-                    i = i + + "target/classes/".length();
+                    i = i + "target/classes/".length();
                 String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
                 clModifiedClasses.add(internalName);
             }
@@ -114,8 +114,8 @@ abstract class AbstractCheck {
 
         Set<String> mlUsedClasses = new HashSet<>();
         Set<String> mlUsedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
-        for (String mulUsedMethod: mlUsedMethods){
-            mlUsedClasses.add(mulUsedMethod.split("#")[0]);
+        for (String mlUsedMethod: mlUsedMethods){
+            mlUsedClasses.add(mlUsedMethod.split("#")[0]);
         }
         if (mlUsedClasses.containsAll(clModifiedClasses)){
             // method level
@@ -183,5 +183,4 @@ abstract class AbstractCheck {
         }
         return anyDiff;
     }
-
 }
