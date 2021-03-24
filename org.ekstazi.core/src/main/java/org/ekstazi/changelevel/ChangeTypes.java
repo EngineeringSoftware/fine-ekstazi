@@ -116,7 +116,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
         // constructor changes
         for (String s : newConstructor.keySet()){
-            if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
+            if (!oldConstructor.containsKey(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
                 return false;
             }
         }
@@ -180,9 +180,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
                     ClassReader reader = new ClassReader(bytes);
                     String curClassName = reader.getClassName();
                     String superClassName = reader.getSuperName();
-                    if (superClassName == null || superClassName.equals("java/lang/Object")){
-                        continue;
-                    }else{
+                    if (superClassName != null && !Objects.equals(superClassName, "java/lang/Object")) {
                         Set<String> h = graph.getOrDefault(curClassName, new HashSet<>());
                         h.add(superClassName);
                         graph.put(curClassName, h);
