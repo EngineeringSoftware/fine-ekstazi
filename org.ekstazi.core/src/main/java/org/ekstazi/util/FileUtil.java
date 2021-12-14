@@ -50,7 +50,7 @@ public class FileUtil {
     public static String urlToObjFilePath(String urlExternalForm){
         int index = urlExternalForm.indexOf("target");
         if (index == -1) {
-            return null;
+            throw new RuntimeException("Cannot find target in url: " + urlExternalForm);
         }
         urlExternalForm = urlExternalForm.substring(index).replace(".class", "");
         StringBuffer sb = new StringBuffer();
