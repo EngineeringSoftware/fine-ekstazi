@@ -49,6 +49,9 @@ public class FileUtil {
 
     public static String urlToObjFilePath(String urlExternalForm){
         int index = urlExternalForm.indexOf("target");
+        if (index == -1) {
+            return null;
+        }
         urlExternalForm = urlExternalForm.substring(index).replace(".class", "");
         StringBuffer sb = new StringBuffer();
         String[] array = urlExternalForm.split("/");

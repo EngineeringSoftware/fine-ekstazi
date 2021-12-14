@@ -58,6 +58,9 @@ public class MethodLevelSelection {
                 ChangeTypes curChangeTypes = removeDebugInfo(array);
 
                 String changeTypePath = FileUtil.urlToObjFilePath(classPath.toUri().toURL().toExternalForm());
+                if (changeTypePath == null){
+                    continue;
+                }
                 File preChangeTypeFile = new File(changeTypePath);
 
                 if (!preChangeTypeFile.exists()){
