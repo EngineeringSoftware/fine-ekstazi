@@ -2,14 +2,13 @@ package org.ekstazi.changelevel;
 
 import org.ekstazi.Names;
 import org.ekstazi.asm.ClassReader;
-import org.ekstazi.data.RegData;
 import org.ekstazi.util.FileUtil;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;

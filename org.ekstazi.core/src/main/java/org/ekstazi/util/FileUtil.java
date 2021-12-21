@@ -47,6 +47,11 @@ import org.ekstazi.log.Log;
  */
 public class FileUtil {
 
+    /**
+     * Parse the external form of a file name into the form of ChangeType file path.
+     * @param urlExternalForm
+     * @return
+     */
     public static String urlToObjFilePath(String urlExternalForm){
         int index = urlExternalForm.indexOf("target");
         if (index == -1) {
