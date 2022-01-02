@@ -18,12 +18,8 @@ package org.ekstazi.changelevel;
 
 import org.ekstazi.asm.*;
 import org.ekstazi.asm.signature.SignatureReader;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * Removes debug info from a class file. Visits a class file and keeps only the
@@ -46,7 +42,8 @@ public class CleanCodeUtil extends Printer {
      *
      * @param api
      *            the ASM API version implemented by this visitor. Must be one
-     *            of {@link Opcodes#ASM4}, {@link Opcodes#ASM5} or {@link Opcodes#ASM6}.
+     *            of {@link Opcodes#ASM4}, {@link Opcodes#ASM5} or
+     *            {@link Opcodes#ASM6}.
      */
     protected CleanCodeUtil(final int api) {
         super(api);
@@ -58,8 +55,8 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visit(final int version, final int access, final String name,
-                      final String signature, final String superName,
-                      final String[] interfaces) {
+            final String signature, final String superName,
+            final String[] interfaces) {
         if ((access & Opcodes.ACC_MODULE) != 0) {
             // visitModule will print the module
             return;
@@ -93,7 +90,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public Printer visitModule(final String name, final int access,
-                               final String version) {
+            final String version) {
         buf.setLength(0);
         buf.append(access);
         buf.append(name);
@@ -106,7 +103,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitOuterClass(final String owner, final String name,
-                                final String desc) {
+            final String desc) {
         buf.setLength(0);
         buf.append(owner);
         buf.append(name);
@@ -116,13 +113,13 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public CleanCodeUtil visitClassAnnotation(final String desc,
-                                                                   final boolean visible) {
+            final boolean visible) {
         return visitAnnotation(desc, visible);
     }
 
     @Override
     public Printer visitClassTypeAnnotation(int typeRef, TypePath typePath,
-                                            String desc, boolean visible) {
+            String desc, boolean visible) {
         return visitTypeAnnotation(typeRef, typePath, desc, visible);
     }
 
@@ -133,7 +130,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitInnerClass(final String name, final String outerName,
-                                final String innerName, final int access) {
+            final String innerName, final int access) {
         buf.setLength(0);
         buf.append(access);
         buf.append(name);
@@ -144,14 +141,14 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public CleanCodeUtil visitField(final int access, final String name,
-                                    final String desc, final String signature, final Object value) {
+            final String desc, final String signature, final Object value) {
         buf.setLength(0);
         buf.append(access);
         buf.append(name);
         buf.append(desc);
-        //TODO signature may always be null if there is no generic type
+        // TODO signature may always be null if there is no generic type
         buf.append(signature);
-        //TODO value of field change should always be file level?
+        // TODO value of field change should always be file level?
         if (value != null) {
             buf.append(value);
         }
@@ -164,7 +161,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public CleanCodeUtil visitMethod(final int access, final String name,
-                                                          final String desc, final String signature, final String[] exceptions) {
+            final String desc, final String signature, final String[] exceptions) {
         buf.setLength(0);
         buf.append(access);
         buf.append(name);
@@ -220,7 +217,7 @@ public class CleanCodeUtil extends Printer {
         buf.append(export);
         buf.append(access);
         if (modules != null) {
-            for (String module: modules){
+            for (String module : modules) {
                 buf.append(module);
             }
         }
@@ -233,7 +230,7 @@ public class CleanCodeUtil extends Printer {
         buf.append(export);
         buf.append(access);
         if (modules != null) {
-            for(String module : modules){
+            for (String module : modules) {
                 buf.append(module);
             }
         }
@@ -251,7 +248,7 @@ public class CleanCodeUtil extends Printer {
     public void visitProvide(String provide, String... providers) {
         buf.setLength(0);
         buf.append(provide);
-        for(String provider:providers){
+        for (String provider : providers) {
             buf.append(provider);
         }
         text.add(buf.toString());
@@ -382,7 +379,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitEnum(final String name, final String desc,
-                          final String value) {
+            final String value) {
         buf.setLength(0);
         if (name != null) {
             buf.append(name);
@@ -427,13 +424,13 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public CleanCodeUtil visitFieldAnnotation(final String desc,
-                                                                   final boolean visible) {
+            final boolean visible) {
         return visitAnnotation(desc, visible);
     }
 
     @Override
     public Printer visitFieldTypeAnnotation(int typeRef, TypePath typePath,
-                                            String desc, boolean visible) {
+            String desc, boolean visible) {
         return visitTypeAnnotation(typeRef, typePath, desc, visible);
     }
 
@@ -454,7 +451,7 @@ public class CleanCodeUtil extends Printer {
     public void visitParameter(final String name, final int access) {
         buf.setLength(0);
         buf.append(access);
-        if (name != null){
+        if (name != null) {
             buf.append(name);
         }
         text.add(buf.toString());
@@ -469,26 +466,26 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public CleanCodeUtil visitMethodAnnotation(final String desc,
-                                                                    final boolean visible) {
-//        buf.setLength(0);
-//        buf.append(desc);
-//        text.add(buf.toString());
-//        CleanCodeUtil c = createCleanCodeUtil();
-//        text.add(c.getText());
-//        text.add(visible);
-//        return c;
+            final boolean visible) {
+        // buf.setLength(0);
+        // buf.append(desc);
+        // text.add(buf.toString());
+        // CleanCodeUtil c = createCleanCodeUtil();
+        // text.add(c.getText());
+        // text.add(visible);
+        // return c;
         return visitAnnotation(desc, visible);
     }
 
     @Override
     public Printer visitMethodTypeAnnotation(int typeRef, TypePath typePath,
-                                             String desc, boolean visible) {
+            String desc, boolean visible) {
         return visitTypeAnnotation(typeRef, typePath, desc, visible);
     }
 
     @Override
     public CleanCodeUtil visitParameterAnnotation(final int parameter,
-                                                                       final String desc, final boolean visible) {
+            final String desc, final boolean visible) {
         buf.setLength(0);
         buf.append(desc);
         text.add(buf.toString());
@@ -517,7 +514,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitFrame(final int type, final int nLocal,
-                           final Object[] local, final int nStack, final Object[] stack) {
+            final Object[] local, final int nStack, final Object[] stack) {
         buf.setLength(0);
         switch (type) {
             case Opcodes.F_NEW:
@@ -553,8 +550,9 @@ public class CleanCodeUtil extends Printer {
     public void visitIntInsn(final int opcode, final int operand) {
         buf.setLength(0);
         buf.append(OPCODES[opcode])
-                .append(opcode == Opcodes.NEWARRAY ? TYPES[operand] : Integer
-                        .toString(operand));
+                .append(opcode == Opcodes.NEWARRAY ? TYPES[operand]
+                        : Integer
+                                .toString(operand));
         text.add(buf.toString());
     }
 
@@ -575,19 +573,19 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitFieldInsn(final int opcode, final String owner,
-                               final String name, final String desc) {
+            final String name, final String desc) {
         buf.setLength(0);
         buf.append(OPCODES[opcode]);
         buf.append(owner);
         buf.append(name);
-        buf.append(desc);;
+        buf.append(desc);
         text.add(buf.toString());
     }
 
     @Deprecated
     @Override
     public void visitMethodInsn(final int opcode, final String owner,
-                                final String name, final String desc) {
+            final String name, final String desc) {
         if (api >= Opcodes.ASM5) {
             super.visitMethodInsn(opcode, owner, name, desc);
             return;
@@ -598,7 +596,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitMethodInsn(final int opcode, final String owner,
-                                final String name, final String desc, final boolean itf) {
+            final String name, final String desc, final boolean itf) {
         if (api < Opcodes.ASM5) {
             super.visitMethodInsn(opcode, owner, name, desc, itf);
             return;
@@ -607,7 +605,7 @@ public class CleanCodeUtil extends Printer {
     }
 
     private void doVisitMethodInsn(final int opcode, final String owner,
-                                   final String name, final String desc, final boolean itf) {
+            final String name, final String desc, final boolean itf) {
         buf.setLength(0);
         buf.append(OPCODES[opcode]);
         buf.append(owner);
@@ -618,7 +616,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm,
-                                       Object... bsmArgs) {
+            Object... bsmArgs) {
         buf.setLength(0);
         buf.append(name);
         buf.append(desc);
@@ -630,7 +628,7 @@ public class CleanCodeUtil extends Printer {
                 Printer.appendString(buf, (String) cst);
             } else if (cst instanceof Type) {
                 Type type = (Type) cst;
-                if(type.getSort() == Type.METHOD){
+                if (type.getSort() == Type.METHOD) {
                     buf.append(type.getDescriptor());
                 } else {
                     buf.append(type.getDescriptor());
@@ -685,7 +683,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitTableSwitchInsn(final int min, final int max,
-                                     final Label dflt, final Label... labels) {
+            final Label dflt, final Label... labels) {
         buf.setLength(0);
         for (int i = 0; i < labels.length; ++i) {
             buf.append(min + i);
@@ -697,7 +695,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitLookupSwitchInsn(final Label dflt, final int[] keys,
-                                      final Label[] labels) {
+            final Label[] labels) {
         buf.setLength(0);
         for (int i = 0; i < labels.length; ++i) {
             buf.append(keys[i]);
@@ -717,13 +715,13 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public Printer visitInsnAnnotation(int typeRef, TypePath typePath,
-                                       String desc, boolean visible) {
+            String desc, boolean visible) {
         return visitTypeAnnotation(typeRef, typePath, desc, visible);
     }
 
     @Override
     public void visitTryCatchBlock(final Label start, final Label end,
-                                   final Label handler, final String type) {
+            final Label handler, final String type) {
         buf.setLength(0);
         appendLabel(start);
         appendLabel(end);
@@ -734,7 +732,7 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public Printer visitTryCatchAnnotation(int typeRef, TypePath typePath,
-                                           String desc, boolean visible) {
+            String desc, boolean visible) {
         buf.setLength(0);
         buf.append(desc);
         text.add(buf.toString());
@@ -750,8 +748,8 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public void visitLocalVariable(final String name, final String desc,
-                                   final String signature, final Label start, final Label end,
-                                   final int index) {
+            final String signature, final Label start, final Label end,
+            final int index) {
         buf.setLength(0);
         buf.append(name);
         buf.append(desc);
@@ -772,8 +770,8 @@ public class CleanCodeUtil extends Printer {
 
     @Override
     public Printer visitLocalVariableAnnotation(int typeRef, TypePath typePath,
-                                                Label[] start, Label[] end, int[] index, String desc,
-                                                boolean visible) {
+            Label[] start, Label[] end, int[] index, String desc,
+            boolean visible) {
         buf.setLength(0);
         buf.append(desc);
         text.add(buf.toString());
@@ -823,9 +821,9 @@ public class CleanCodeUtil extends Printer {
      * Prints a disassembled view of the given annotation.
      *
      * @param desc
-     *            the class descriptor of the annotation class.
+     *                the class descriptor of the annotation class.
      * @param visible
-     *            <tt>true</tt> if the annotation is visible at runtime.
+     *                <tt>true</tt> if the annotation is visible at runtime.
      * @return a visitor to visit the annotation values.
      */
     public CleanCodeUtil visitAnnotation(final String desc, final boolean visible) {
@@ -842,19 +840,20 @@ public class CleanCodeUtil extends Printer {
      * Prints a disassembled view of the given type annotation.
      *
      * @param typeRef
-     *            a reference to the annotated type. See {@link TypeReference}.
+     *                 a reference to the annotated type. See {@link TypeReference}.
      * @param typePath
-     *            the path to the annotated type argument, wildcard bound, array
-     *            element type, or static inner type within 'typeRef'. May be
-     *            <tt>null</tt> if the annotation targets 'typeRef' as a whole.
+     *                 the path to the annotated type argument, wildcard bound,
+     *                 array
+     *                 element type, or static inner type within 'typeRef'. May be
+     *                 <tt>null</tt> if the annotation targets 'typeRef' as a whole.
      * @param desc
-     *            the class descriptor of the annotation class.
+     *                 the class descriptor of the annotation class.
      * @param visible
-     *            <tt>true</tt> if the annotation is visible at runtime.
+     *                 <tt>true</tt> if the annotation is visible at runtime.
      * @return a visitor to visit the annotation values.
      */
     public CleanCodeUtil visitTypeAnnotation(final int typeRef,
-                                                                  final TypePath typePath, final String desc, final boolean visible) {
+            final TypePath typePath, final String desc, final boolean visible) {
         buf.setLength(0);
         buf.append(desc);
         text.add(buf.toString());
@@ -872,7 +871,7 @@ public class CleanCodeUtil extends Printer {
      * Prints a disassembled view of the given attribute.
      *
      * @param attr
-     *            an attribute.
+     *             an attribute.
      */
     public void visitAttribute(final Attribute attr) {
         buf.setLength(0);
@@ -900,13 +899,12 @@ public class CleanCodeUtil extends Printer {
         return new CleanCodeUtil();
     }
 
-
     /**
      * Appends the name of the given label to {@link #buf buf}. Creates a new
      * label name if the given label does not yet have one.
      *
      * @param l
-     *            a label.
+     *          a label.
      */
     protected void appendLabel(final Label l) {
         if (labelNames == null) {
@@ -924,7 +922,7 @@ public class CleanCodeUtil extends Printer {
      * Appends the information about the given handle to {@link #buf buf}.
      *
      * @param h
-     *            a handle, non null.
+     *          a handle, non null.
      */
     protected void appendHandle(final Handle h) {
         int tag = h.getTag();
@@ -1064,34 +1062,37 @@ public class CleanCodeUtil extends Printer {
      * Usage: Textifier [-debug] &lt;binary class name or class file name &gt;
      *
      * @param args
-     *            the command line arguments.
+     *             the command line arguments.
      *
      * @throws Exception
-     *             if the class cannot be found, or if an IO exception occurs.
+     *                   if the class cannot be found, or if an IO exception occurs.
      */
     public static void main(final String[] args) throws Exception {
-//        String filePath = "/Users/liuyu/Desktop/ekstazi-tool/org.ekstazi.core/src/main/java/org/ekstazi/changelevel/A.class";
-//        byte[] array = Files.readAllBytes(Paths.get(filePath));
-//        MyClassVisitor visitor = initMyClassVisitor(array);
-//        TreeMap<String, String> map = visitor.getMethodMap();
-//        String key = "parseArray(Ljava/lang/reflect/Type;Ljava/util/Collection;Ljava/lang/Object;)V";
-//        if(map.containsKey(key)){
-//            System.out.println(map.get(key));
-//        }
-//        }
-//        for (String key : map.keySet().stream().sorted().collect(Collectors.toList())){
-//            System.out.println(key);
-//            System.out.println();
-//        }
+        // String filePath =
+        // "/Users/liuyu/Desktop/ekstazi-tool/org.ekstazi.core/src/main/java/org/ekstazi/changelevel/A.class";
+        // byte[] array = Files.readAllBytes(Paths.get(filePath));
+        // MyClassVisitor visitor = initMyClassVisitor(array);
+        // TreeMap<String, String> map = visitor.getMethodMap();
+        // String key =
+        // "parseArray(Ljava/lang/reflect/Type;Ljava/util/Collection;Ljava/lang/Object;)V";
+        // if(map.containsKey(key)){
+        // System.out.println(map.get(key));
+        // }
+        // }
+        // for (String key :
+        // map.keySet().stream().sorted().collect(Collectors.toList())){
+        // System.out.println(key);
+        // System.out.println();
+        // }
 
-//        String f = visitor.getField();
+        // String f = visitor.getField();
     }
 
-//    public static MyClassVisitor initMyClassVisitor(byte[] bytes){
-//        ClassReader reader = new ClassReader(bytes);
-//        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-//        MyClassVisitor visitor =new MyClassVisitor(Opcodes.ASM6, writer);
-//        reader.accept(visitor, ClassReader.SKIP_DEBUG);
-//        return visitor;
-//    }
+    // public static MyClassVisitor initMyClassVisitor(byte[] bytes){
+    // ClassReader reader = new ClassReader(bytes);
+    // ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+    // MyClassVisitor visitor =new MyClassVisitor(Opcodes.ASM6, writer);
+    // reader.accept(visitor, ClassReader.SKIP_DEBUG);
+    // return visitor;
+    // }
 }

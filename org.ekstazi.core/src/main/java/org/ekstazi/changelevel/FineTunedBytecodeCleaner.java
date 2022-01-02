@@ -5,14 +5,11 @@ import org.ekstazi.asm.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.SQLOutput;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.ekstazi.util.FileUtil;
-import static org.ekstazi.hash.BytecodeCleaner.removeDebugInfo;
 
 public class FineTunedBytecodeCleaner extends ClassVisitor {
 
@@ -50,32 +47,31 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
-
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         FieldVisitor fv = cv.visitField(access, name, desc, signature, value);
-        boolean isStatic = (access & Opcodes.ACC_STATIC) != 0 ;
-        fieldList.add(name+desc+value);
-        if (isStatic){
+        boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
+        fieldList.add(name + desc + value);
+        if (isStatic) {
             staticFieldMap.put(name + desc, " ");
-        }else{
+        } else {
             instanceFieldMap.put(name + desc, " ");
         }
         return fv;
 
-        //todo field annotation
-//        Printer p = new CleanCodeUtil(Opcodes.ASM6) {
-//            @Override
-//            public void visitFieldEnd() {
-//                StringWriter sw = new StringWriter();
-//                print(new PrintWriter(sw));
-//                getText();
-//                String field = sw.toString();
-//                annotations.add(field);
-//                super.visitFieldEnd();
-//            }
-//        };
-//        return new FineTunedFieldVisitor(fv, p);
+        // todo field annotation
+        // Printer p = new CleanCodeUtil(Opcodes.ASM6) {
+        // @Override
+        // public void visitFieldEnd() {
+        // StringWriter sw = new StringWriter();
+        // print(new PrintWriter(sw));
+        // getText();
+        // String field = sw.toString();
+        // annotations.add(field);
+        // super.visitFieldEnd();
+        // }
+        // };
+        // return new FineTunedFieldVisitor(fv, p);
 
     }
 
@@ -83,7 +79,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
 
-        Printer p = new CleanCodeUtil(){
+        Printer p = new CleanCodeUtil() {
             @Override
             public void visitMethodEnd() {
                 StringWriter sw = new StringWriter();
@@ -100,24 +96,24 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     }
                 }
                 Collections.sort(excep);
-                exceptionMap.put(name+desc, excep.toString());
+                exceptionMap.put(name + desc, excep.toString());
 
-                if((name+desc).equals("<clinit>()V")) {
+                if ((name + desc).equals("<clinit>()V")) {
                     // initialize static field
                     constructorsMap.put(methodSignature, sortedString(methodBody));
-                    //todo: Finding 29, change of constructor is a method level change
+                    // todo: Finding 29, change of constructor is a method level change
                     staticMethodMap.put(methodSignature, sortedString(methodBody));
-                } else{
-                    boolean isStatic =  (access & Opcodes.ACC_STATIC) != 0 ;
-                    if(isStatic){
+                } else {
+                    boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
+                    if (isStatic) {
                         staticMethodMap.put(methodSignature, methodBody);
                         methodMap.put(methodSignature, methodBody);
-                    }else{
+                    } else {
                         if (methodSignature.startsWith("<init>")) {
                             constructorsMap.put(methodSignature, sortedString(methodBody));
-                            //todo: Finding 29, change of constructor is a method level change
+                            // todo: Finding 29, change of constructor is a method level change
                             instanceMethodMap.put(methodSignature, sortedString(methodBody));
-                        }else{
+                        } else {
                             instanceMethodMap.put(methodSignature, methodBody);
                             methodMap.put(methodSignature, methodBody);
                         }
@@ -126,24 +122,24 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             }
         };
 
-        return new FineTunedMethodVisitor(mv, p, name+desc);
+        return new FineTunedMethodVisitor(mv, p, name + desc);
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
         AnnotationVisitor av = cv.visitAnnotation(desc, visible);
-        Printer p = new CleanCodeUtil(){
+        Printer p = new CleanCodeUtil() {
             // class annotation
             @Override
             public void visitAnnotationEnd() {
                 if (visible) {
                     // todo: runtime annotation of class
-//                    StringWriter sw = new StringWriter();
-//                    print(new PrintWriter(sw));
-//                    getText().clear();
-//                    String annotation = sw.toString();
-//                    if (!annotation.equals(""))
-//                        annotations.add(annotation);
+                    // StringWriter sw = new StringWriter();
+                    // print(new PrintWriter(sw));
+                    // getText().clear();
+                    // String annotation = sw.toString();
+                    // if (!annotation.equals(""))
+                    // annotations.add(annotation);
                 }
             }
         };
@@ -157,10 +153,11 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
         @Override
         public AnnotationVisitor visitAnnotation(final String desc,
-                                                 final boolean visible) {
-            AnnotationVisitor av = fv == null ? null : fv.visitAnnotation(desc,
-                    visible);
-            if(visible) {
+                final boolean visible) {
+            AnnotationVisitor av = fv == null ? null
+                    : fv.visitAnnotation(desc,
+                            visible);
+            if (visible) {
                 return new FineTunedAnnotationVisitor(av, p);
             }
             return av;
@@ -179,18 +176,18 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             this.sig = sig;
         }
 
-//        @Override
-//        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-//            if(visible){uyitfdd
-//                if (desc.equals("Lorg/junit/Test;"))
-//                    testMethodSig.add(sig);
-//            }
-//            return super.visitAnnotation(desc, visible);
-//        }
+        // @Override
+        // public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+        // if(visible){uyitfdd
+        // if (desc.equals("Lorg/junit/Test;"))
+        // testMethodSig.add(sig);
+        // }
+        // return super.visitAnnotation(desc, visible);
+        // }
 
         @Override
         public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
-            if(visible) {
+            if (visible) {
                 return new FineTunedAnnotationVisitor(p);
             }
             return super.visitParameterAnnotation(parameter, desc, visible);
@@ -198,7 +195,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
     }
 
-    static class FineTunedAnnotationVisitor extends TraceAnnotationVisitor{
+    static class FineTunedAnnotationVisitor extends TraceAnnotationVisitor {
         public Printer p;
 
         public FineTunedAnnotationVisitor(AnnotationVisitor av, Printer p) {
@@ -214,7 +211,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         @Override
         public void visit(String name, Object value) {
             p.buf.setLength(0);
-            p.buf.append(name+value);
+            p.buf.append(name + value);
             p.text.add(p.buf.toString());
         }
 
@@ -224,7 +221,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         }
     }
 
-    public ChangeTypes getChangeTypes(){
+    public ChangeTypes getChangeTypes() {
         ChangeTypes c = new ChangeTypes();
         c.constructorsMap = this.constructorsMap;
         c.instanceMethodMap = this.instanceMethodMap;
@@ -238,48 +235,47 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return c;
     }
 
-    public TreeMap getConstructorsMap(){
+    public TreeMap getConstructorsMap() {
         return constructorsMap;
     }
 
-    public TreeMap getInstanceMethodMap(){
+    public TreeMap getInstanceMethodMap() {
         return instanceMethodMap;
     }
 
-    public TreeMap getStaticMethodMap(){
+    public TreeMap getStaticMethodMap() {
         return staticMethodMap;
     }
 
-    public String[] getClassInterfaces(){
+    public String[] getClassInterfaces() {
         return classInterfaces;
     }
 
-    public String getSuperClass(){
+    public String getSuperClass() {
         return superClass;
     }
 
-    public int getClassModifier(){
+    public int getClassModifier() {
         return classModifier;
     }
 
-    public TreeMap getInstanceFieldMap(){
+    public TreeMap getInstanceFieldMap() {
         return instanceFieldMap;
     }
 
-    public TreeMap getStaticFieldMap(){
+    public TreeMap getStaticFieldMap() {
         return staticFieldMap;
     }
 
-    public HashMap<String, String> getAnnotations(){
+    public HashMap<String, String> getAnnotations() {
         return annotations;
     }
 
-    public HashMap getExceptionMap(){
+    public HashMap getExceptionMap() {
         return exceptionMap;
     }
 
-
-    private String sortedString(String str){
+    private String sortedString(String str) {
         return str.chars() // IntStream
                 .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
     }
@@ -311,7 +307,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     static String INNER_ACCESS = "add_access"; // 1
 
     static String ADD_BASE_CLASS = "add_base_class"; // 2
-    static String ADD_CLASS = "add_class";  // 3
+    static String ADD_CLASS = "add_class"; // 3
     static String REMOVE_CLASS = "remove_class"; // 19
     static String CHANGE_BASE_CLASS = "change_base_class"; // 10
     static String CHANGE_CLASS_MODIFIER = "change_class_modifier"; // 11
@@ -346,7 +342,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
     // invoke bash in java
     public static String bashCommand(String path, String command) {
-        String[] commands = {"bash", "-c", "cd " + path + ";" + command};
+        String[] commands = { "bash", "-c", "cd " + path + ";" + command };
         try {
             Runtime r = Runtime.getRuntime();
             Process p = r.exec(commands);
@@ -378,7 +374,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         if (!pref.exists()) { // class file from previous build does not exist
             res.add(ADD_CLASS);
             return res;
-        } else if (!curf.exists()){ // class file from current build does not exist
+        } else if (!curf.exists()) { // class file from current build does not exist
             res.add(REMOVE_CLASS);
             return res;
         } else {
@@ -397,29 +393,29 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 ChangeTypes preChangeTypes = removeDebugInfo(preBytes);
                 ChangeTypes curChangeTypes = removeDebugInfo(curBytes);
 
-                if (!preChangeTypes.superClass.equals(curChangeTypes.superClass)){
+                if (!preChangeTypes.superClass.equals(curChangeTypes.superClass)) {
                     res.add(CHANGE_BASE_CLASS);
                 }
 
                 Set<String> preFieldList = new HashSet<>(preChangeTypes.fieldList);
                 Set<String> curFieldList = new HashSet<>(curChangeTypes.fieldList);
-                //TODO: commons-codec: b542cf9d
+                // TODO: commons-codec: b542cf9d
 
-                for (String preField : preChangeTypes.fieldList){
+                for (String preField : preChangeTypes.fieldList) {
                     curFieldList.remove(preField);
                 }
-                for (String curField : curChangeTypes.fieldList){
+                for (String curField : curChangeTypes.fieldList) {
                     preFieldList.remove(curField);
                 }
 
                 System.out.println("preField: " + preFieldList);
                 System.out.println("curField: " + curFieldList);
-                if (preFieldList.size() > 0 || curFieldList.size() > 0){
-                    if (preFieldList.size() == 0){
+                if (preFieldList.size() > 0 || curFieldList.size() > 0) {
+                    if (preFieldList.size() == 0) {
                         res.add(ADD_FIELD);
-                    }else if(curFieldList.size() == 0){
+                    } else if (curFieldList.size() == 0) {
                         res.add(REMOVE_FIELD);
-                    }else{
+                    } else {
                         res.add(CHANGE_FIELD_DECLARATION);
                     }
                 }
@@ -427,27 +423,29 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 TreeMap<String, String> newConstructor = preChangeTypes.constructorsMap;
                 TreeMap<String, String> oldConstructor = curChangeTypes.constructorsMap;
 
-                if (newConstructor.size() != oldConstructor.size()){
+                if (newConstructor.size() != oldConstructor.size()) {
                     res.add(UPDATE_CONSTRUCTOR);
                 }
 
-                for (String s : newConstructor.keySet()){
-                    if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))){
+                for (String s : newConstructor.keySet()) {
+                    if (!oldConstructor.keySet().contains(s) || !newConstructor.get(s).equals(oldConstructor.get(s))) {
                         res.add(UPDATE_CONSTRUCTOR);
                     }
                 }
 
-                System.out.println("class: "+curClassPath);
+                System.out.println("class: " + curClassPath);
 
-                System.out.println("pre instance method: "+preChangeTypes.instanceMethodMap.size());
-                System.out.println("cur instance method: "+curChangeTypes.instanceMethodMap.size());
-                List<String> instanceMethodChange = methodChange(preChangeTypes.instanceMethodMap, curChangeTypes.instanceMethodMap, false);
+                System.out.println("pre instance method: " + preChangeTypes.instanceMethodMap.size());
+                System.out.println("cur instance method: " + curChangeTypes.instanceMethodMap.size());
+                List<String> instanceMethodChange = methodChange(preChangeTypes.instanceMethodMap,
+                        curChangeTypes.instanceMethodMap, false);
                 if (instanceMethodChange.size() > 0)
                     res.addAll(instanceMethodChange);
-                System.out.println("pre static method: "+preChangeTypes.staticMethodMap.size());
-                System.out.println("cur static method: "+curChangeTypes.staticMethodMap.size());
-                List<String> staticMethodChange = methodChange(preChangeTypes.staticMethodMap, curChangeTypes.staticMethodMap, true);
-                if (staticMethodChange.size() > 0){
+                System.out.println("pre static method: " + preChangeTypes.staticMethodMap.size());
+                System.out.println("cur static method: " + curChangeTypes.staticMethodMap.size());
+                List<String> staticMethodChange = methodChange(preChangeTypes.staticMethodMap,
+                        curChangeTypes.staticMethodMap, true);
+                if (staticMethodChange.size() > 0) {
                     res.addAll(staticMethodChange);
                 }
 
@@ -458,29 +456,30 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return res;
     }
 
-    public static List<String> methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods, boolean isStatic){
+    public static List<String> methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods,
+            boolean isStatic) {
         List<String> res = new ArrayList<>();
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
-        for (String sig : methodSig){
-            if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
-//                if (oldMethods.get(sig).equals(newMethods.get(sig))) {
-//                    oldMethods.remove(sig);
-//                    newMethods.remove(sig);
-//                }else{
-//                    res.add(METHOD);
-//                }
-                if (!oldMethods.get(sig).equals(newMethods.get(sig))){
+        for (String sig : methodSig) {
+            if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)) {
+                // if (oldMethods.get(sig).equals(newMethods.get(sig))) {
+                // oldMethods.remove(sig);
+                // newMethods.remove(sig);
+                // }else{
+                // res.add(METHOD);
+                // }
+                if (!oldMethods.get(sig).equals(newMethods.get(sig))) {
                     res.add(METHOD + " " + sig);
                 }
                 oldMethods.remove(sig);
                 newMethods.remove(sig);
-            } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
+            } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))) {
                 newMethods.values().remove(oldMethods.get(sig));
                 oldMethods.remove(sig);
                 System.out.println("change sig: " + sig);
                 res.add(CHANGE_SIGNATURE);
-            } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
+            } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))) {
                 oldMethods.values().remove(newMethods.get(sig));
                 newMethods.remove(sig);
                 System.out.println("change sig: " + sig);
@@ -488,42 +487,42 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             }
         }
 
-        if (oldMethods.size() == 0 && newMethods.size() == 0){
+        if (oldMethods.size() == 0 && newMethods.size() == 0) {
             return res;
         }
 
-        System.out.println("isStatic: "+isStatic);
-        System.out.println("old method size: "+oldMethods.size());
-        System.out.println("new method size: "+newMethods.size());
+        System.out.println("isStatic: " + isStatic);
+        System.out.println("old method size: " + oldMethods.size());
+        System.out.println("new method size: " + newMethods.size());
 
         // one methodmap is empty then the left must be added or deleted.
-        if (oldMethods.size() == 0){
+        if (oldMethods.size() == 0) {
             if (!isStatic) {
                 res.add(ADD_INSTANCE_METHOD);
                 return res;
-            }else{
+            } else {
                 res.add(ADD_STATIC_METHOD);
                 return res;
             }
         }
 
-        if (newMethods.size() == 0){
-            if (!isStatic){
+        if (newMethods.size() == 0) {
+            if (!isStatic) {
                 res.add(REMOVE_INSTANCE_METHOD);
                 return res;
-            }else{
+            } else {
                 res.add(REMOVE_STATIC_METHOD);
                 return res;
             }
         }
 
-        if (oldMethods.size()>0 && newMethods.size()>0){
-            if (!isStatic){
+        if (oldMethods.size() > 0 && newMethods.size() > 0) {
+            if (!isStatic) {
                 System.out.println("change instance method");
                 res.add(REMOVE_INSTANCE_METHOD);
                 res.add(ADD_INSTANCE_METHOD);
                 return res;
-            }else{
+            } else {
                 res.add(REMOVE_STATIC_METHOD);
                 res.add(ADD_STATIC_METHOD);
                 return res;
@@ -552,13 +551,13 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             if (!resultFolder.exists() || !resultFolder.isDirectory()) {
                 resultFolder.mkdirs();
             }
-            //use json to store the result, here use the library Gson
+            // use json to store the result, here use the library Gson
             Map<String, Map<String, Set<String>>> resLinkedHashMap = new LinkedHashMap<>();
             Gson gson = new GsonBuilder()
                     .disableHtmlEscaping()
                     .setPrettyPrinting()
                     .create();
-            //get previous shas
+            // get previous shas
             String filename = project.replace("/", "_") + ".json";
             String path = Macros.resultFolderPath + "/shas_with_java_files_change/" + filename;
             BufferedReader bufferedReader = null;
@@ -570,8 +569,9 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 e.printStackTrace();
                 continue;
             }
-//            String sha = Macros.projectList.get(project);
-//            String[] shalist = bashCommand(projectPath, "git rev-list --first-parent -n " + (Macros.numSHA + 1) + " " + sha + " | tac").split("\n");
+            // String sha = Macros.projectList.get(project);
+            // String[] shalist = bashCommand(projectPath, "git rev-list --first-parent -n "
+            // + (Macros.numSHA + 1) + " " + sha + " | tac").split("\n");
             String preSHA = shalist[0];
 
             for (int i = 1; i < shalist.length; i++) {
@@ -585,9 +585,10 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 bashCommand(projectPath, "git clean -f");
                 bashCommand(projectPath, "rm -rf target");
                 bashCommand(projectPath, "git checkout " + curSHA);
-                String curCompileResult = bashCommand(projectPath, "mvn clean test-compile "+Macros.SKIPS);
+                String curCompileResult = bashCommand(projectPath, "mvn clean test-compile " + Macros.SKIPS);
                 if (curCompileResult.contains("BUILD FAILURE")) {
-                    bashCommand(projectPath, preSHA + " " + curSHA + "\n >> " + Macros.resultFolderPath + "/build_failure.log");
+                    bashCommand(projectPath,
+                            preSHA + " " + curSHA + "\n >> " + Macros.resultFolderPath + "/build_failure.log");
                     bashCommand(projectPath, "rm -rf preclasses");
                     bashCommand(projectPath, "rm -rf pretestclasses");
                     bashCommand(projectPath, "rm -rf target");
@@ -599,26 +600,26 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
                 if (ChangeTypes.hierarchyGraph == null) {
                     ChangeTypes.getHierarchyGraph();
-//                    System.out.println(ChangeTypes.hierarchyGraph);
+                    // System.out.println(ChangeTypes.hierarchyGraph);
                 }
 
-                for (String curClassPath : ChangeTypes.listFiles(curClassFolder.getAbsolutePath())){
+                for (String curClassPath : ChangeTypes.listFiles(curClassFolder.getAbsolutePath())) {
                     int index = curClassPath.lastIndexOf("target/classes");
                     String fileRelativePath = curClassPath.substring(index + "target/classes/".length());
                     String preClassPath = projectPath + "/preclasses/" + fileRelativePath;
                     Set<String> level = getChangeLevel(preClassPath, curClassPath);
-                    if (level.contains(OTHER)){
+                    if (level.contains(OTHER)) {
                         continue;
                     }
                     jsonObject.put(fileRelativePath, level);
                 }
 
-                for (String curClassPath : ChangeTypes.listFiles(curTestFolder.getAbsolutePath())){
+                for (String curClassPath : ChangeTypes.listFiles(curTestFolder.getAbsolutePath())) {
                     int index = curClassPath.lastIndexOf("target/test-classes");
                     String fileRelativePath = curClassPath.substring(index + "target/test-classes/".length());
                     String preClassPath = projectPath + "/pretestclasses/" + fileRelativePath;
                     Set<String> level = getChangeLevel(preClassPath, curClassPath);
-                    if (level.contains(OTHER)){
+                    if (level.contains(OTHER)) {
                         continue;
                     }
                     jsonObject.put(fileRelativePath, level);

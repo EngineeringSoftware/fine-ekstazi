@@ -1,14 +1,11 @@
 package org.ekstazi.smethods;
 
 import org.ekstazi.asm.ClassReader;
-import org.ekstazi.data.Storer;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,8 +14,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.ekstazi.smethods.MethodLevelSelection.getInvokedConstructorsMap;
-
-
+import static org.ekstazi.smethods.MethodLevelSelection.getChangedMethods;
+import static org.ekstazi.smethods.Macros.*;
+import org.ekstazi.changelevel.ChangeTypes;
+import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
+import org.ekstazi.util.FileUtil;
 public class MethodLevelStaticDepsBuilder{
     // mvn exec:java -Dexec.mainClass=org.sekstazi.smethods.MethodLevelStaticDepsBuilder -Dmyproperty=/Users/liuyu/projects/finertsTest
 
@@ -40,6 +40,30 @@ public class MethodLevelStaticDepsBuilder{
             throw new RuntimeException("Incorrect arguments");
         }
         String pathToStartDir = args[0];
+       
+        TEST_PROJECT_PATH = args[0];
+        // path to previous SHA's classes directory
+        String classesDir = args[1];
+        // parse test classes to ChangeTypes
+        // the following lines are added for testing purpose
+        String serPath = TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME + "/" + CHANGE_TYPES_DIR_NAME;
+        List<Path> classFilePaths = Files.walk(Paths.get(classesDir)).filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".class")).collect(Collectors.toList());
+        for (Path classFilePath : classFilePaths){
+            //System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
+            ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(classFilePath.toFile()));
+            //System.out.println("[log] curClassName: " + curChangeTypes.curClass);
+            // System.out.println(serPath + "/" + classFilePath.toFile().getName().replace(".class", ".ser"));
+            String absolutePath = classFilePath.toAbsolutePath().toString();
+            String serFileName = "";
+            if (absolutePath.contains("target/classes/")){
+                int i = absolutePath.indexOf("target/classes/");
+                serFileName = absolutePath.substring(i + "target/classes/".length()).replace("/", ".").replace(".class", ".ser");
+            }else if(absolutePath.contains("target/test-classes/")){
+                int i = absolutePath.indexOf("target/test-classes/");
+                serFileName = absolutePath.substring(i + "target/test-classes/".length()).replace("/", ".").replace(".class", ".ser");
+            }
+            ChangeTypes.toFile(serPath + "/" + serFileName, curChangeTypes);
+        }
 
         List<ClassReader> classReaderList = getClassReaders(pathToStartDir);
 
@@ -55,6 +79,8 @@ public class MethodLevelStaticDepsBuilder{
             }
         }
 
+        Set<String> changedMethods = getChangedMethods(testClasses);
+        saveSet(changedMethods, "changedMethods.txt");
         // collect invoked constructors for each method
         Map<String, Set<String>> method2invokedConstructors = getInvokedConstructorsMap(methodName2MethodNames);
 
@@ -67,6 +93,7 @@ public class MethodLevelStaticDepsBuilder{
         saveMap(class2ContainedMethodNames, "class2methods.txt");
         // save into a txt file ".ekstazi/methods.txt"
         saveMap(test2methods, "methods.txt");
+    
     }
 
     //TODO: keeping all the classreaders would crash the memory
@@ -116,8 +143,11 @@ public class MethodLevelStaticDepsBuilder{
     }
 
     public static void saveMap(Map<String, Set<String>> mapToStore, String fileName) throws Exception {
-        File directory = new File(".ekstazi");
-        directory.mkdir();
+        // File directory = new File(".ekstazi");
+        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
 
         File txtFile = new File(directory, fileName);
         PrintWriter pw = new PrintWriter(txtFile);
@@ -134,8 +164,11 @@ public class MethodLevelStaticDepsBuilder{
     }
 
     public static void saveSet(Set<String> setToStore, String fileName) throws Exception {
-        File directory = new File(".ekstazi");
-        directory.mkdir();
+        // File directory = new File(".ekstazi");
+        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
 
         File txtFile = new File(directory, fileName);
         PrintWriter pw = new PrintWriter(txtFile);

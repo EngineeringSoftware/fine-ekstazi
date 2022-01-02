@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
 import static org.ekstazi.smethods.Macros.*;
 
@@ -44,6 +43,7 @@ public class MethodLevelSelection {
 
             Set<String> changeTypePaths = new HashSet<>();
             String serPath = TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME + "/" + CHANGE_TYPES_DIR_NAME;
+            System.out.println("serPath: " + serPath);
             if (new File(serPath).exists()) {
                 changeTypePaths = Files.walk(Paths.get(serPath))
                         .filter(Files::isRegularFile)
@@ -52,6 +52,8 @@ public class MethodLevelSelection {
                         .map(Path::toString)
                         .collect(Collectors.toSet());
             }
+
+            System.out.println("changeTypePaths: " + changeTypePaths.size());
 
             for (Path classPath : classPaths){
                 byte[] array = Files.readAllBytes(classPath);
@@ -74,7 +76,6 @@ public class MethodLevelSelection {
                 }else {
                     changeTypePaths.remove(changeTypePath);
                     ChangeTypes preChangeTypes = ChangeTypes.fromFile(changeTypePath);
-
                     if (!preChangeTypes.equals(curChangeTypes)) {
                         res.addAll(getChangedMethodsPerChangeType(preChangeTypes.methodMap,
                                 curChangeTypes.methodMap, curChangeTypes.curClass, allTests));

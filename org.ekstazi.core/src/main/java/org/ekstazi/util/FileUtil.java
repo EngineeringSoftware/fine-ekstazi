@@ -41,7 +41,7 @@ import java.util.zip.Checksum;
 
 import org.ekstazi.Names;
 import org.ekstazi.log.Log;
-
+import static org.ekstazi.smethods.Macros.*;
 /**
  * Utility methods for manipulating files.
  */
@@ -65,8 +65,10 @@ public class FileUtil {
             sb.append(".");
         }
         sb.append("ser");
-        return System.getProperty("user.dir") + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        return TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
                 Names.CHANGE_TYPES_DIR_NAME + "/" + sb.toString();
+        // return System.getProperty("user.dir") + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        //         Names.CHANGE_TYPES_DIR_NAME + "/" + sb.toString();
     }
 
     /**
