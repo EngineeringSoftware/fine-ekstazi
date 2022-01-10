@@ -206,6 +206,10 @@ public final class Config {
     public static boolean MRTS_ON_V = false;
     protected static final String MRTS_ON_N  = "mrts";
 
+    @Opt(desc = "hotfile mode")
+    public static boolean HOTFILE_ON_V = false;
+    protected static final String HOTFILE_ON_N  = "hotfile";
+
     @Opt(desc = "Debug mode")
     public static DebugMode DEBUG_MODE_V = DebugMode.NONE;
     protected static String DEBUG_MODE_N = "debug.mode";
