@@ -127,24 +127,24 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         if (ChangeTypes.hierarchyGraph.containsKey(newCurClass) || ChangeTypes.hierarchyGraph.containsKey(oldCurClass)){
             hasHierarchy =  true;
         }
-        if (testClasses == null){
-            testClasses = listTestClasses();
-        }
+        // if (testClasses == null){
+        //     testClasses = listTestClasses();
+        // }
         modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), hasHierarchy);
         return !modified;
     }
 
-    public HashSet<String> listTestClasses(){
-        HashSet<String> testClasses = new HashSet<>();
-        File folder = new File(System.getProperty("user.dir") + "/" +Names.EKSTAZI_ROOT_DIR_NAME);
-        for (final File fileEntry : folder.listFiles()) {
-            String fileName = fileEntry.getName();
-            if (fileEntry.isFile() && fileName.endsWith(".clz")) {
-                testClasses.add(fileName.substring(0, fileName.length()-4).replace(".", "/"));
-            }
-        }
-        return testClasses;
-    }
+    // public HashSet<String> listTestClasses(){
+    //     HashSet<String> testClasses = new HashSet<>();
+    //     File folder = new File(System.getProperty("user.dir") + "/" + Names.EKSTAZI_ROOT_DIR_NAME);
+    //     for (final File fileEntry : folder.listFiles()) {
+    //         String fileName = fileEntry.getName();
+    //         if (fileEntry.isFile() && fileName.endsWith(".clz")) {
+    //             testClasses.add(fileName.substring(0, fileName.length()-4).replace(".", "/"));
+    //         }
+    //     }
+    //     return testClasses;
+    // }
 
     public static List<String> listFiles(String dir) {
         List<String> res = new ArrayList<>();
@@ -171,7 +171,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
                     .filter(Files::isRegularFile)
                     .filter(f -> f.toString().endsWith(".class"))
                     .collect(Collectors.toList());
-
             // subclass <-> superclasses
             HashMap<String, Set<String>> graph = new HashMap<>();
                 for (Path classPath : classPaths) {
@@ -247,7 +246,8 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         // one methodmap is empty then the left must be added or deleted.
         if (!hasHierarchy && (oldMethods.size() == 0 || newMethods.size() == 0)){
             // the class is test class and the test class adds/revises test methods
-            if (testClasses.contains(this.curClass) && newMethods.size()>0){
+            // if (testClasses.contains(this.curClass) && newMethods.size()>0){
+            if (this.curClass.contains("Test") && newMethods.size()>0){
                 return true;
             }
             return false;
