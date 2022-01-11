@@ -18,13 +18,18 @@ package org.ekstazi.check;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.ekstazi.Config;
 import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
+import org.ekstazi.changelevel.Macros;
 import org.ekstazi.data.RegData;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
@@ -45,6 +50,8 @@ abstract class AbstractCheck {
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
     protected static Set<String> changedMethods;
+
+    protected static List<String> hotfiles;
     /**
      * Constructor.
      */
@@ -58,6 +65,19 @@ abstract class AbstractCheck {
     public abstract void includeAffected(Set<String> affectedClasses);
 
     protected boolean isAffected(String dirName, String className, String methodName) {
+        if (Config.HOTFILE_ON_V){
+            if (hotfiles == null){
+                hotfiles = new ArrayList<>();
+                Path path = Paths.get(Macros.HOTFILE_PATH);
+                if (Files.exists(path)){
+                    try (Stream<String> lines = Files.lines(path)) {
+                        hotfiles = lines.collect(Collectors.toList());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
         if (Config.FINERTS_ON_V && Config.MRTS_ON_V){
             if (changedMethods == null) {
                 try {
@@ -74,6 +94,7 @@ abstract class AbstractCheck {
                             testClasses.add(c.getClassName().split("\\$")[0]);
                         }
                     }
+                    // TODO: if finerts is on, get deps
                     test2methods = getDeps(methodName2MethodNames, testClasses);
                     changedMethods = getChangedMethods(testClasses);
 //                    long end = System.currentTimeMillis();
@@ -104,7 +125,18 @@ abstract class AbstractCheck {
                 else
                     i = i + "target/classes/".length();
                 String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
-                clModifiedClasses.add(internalName);
+                // System.out.println("AbstractCheck.isAffected: " + internalName);
+                // System.out.println(hotfiles);
+                // System.out.println(hotfiles.contains(internalName));
+                if (Config.HOTFILE_ON_V){
+                    if (!hotfiles.contains(internalName)){
+                        return true;
+                    }else{
+                        clModifiedClasses.add(internalName);
+                    }
+                }else{
+                    clModifiedClasses.add(internalName);
+                }
             }
         }
 
@@ -157,7 +189,7 @@ abstract class AbstractCheck {
         // Check hash.
         String newHash = hasher.hashURL(urlExternalForm);
         boolean anyDiff = !newHash.equals(regDatum.getHash());
-        // TODO: if checksum of ekstazi differs, compare ChangeTypes
+        // TODO: If checksum of ekstazi differs, compare ChangeTypes
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
             Boolean changed = fileChangedCache.get(fileName);

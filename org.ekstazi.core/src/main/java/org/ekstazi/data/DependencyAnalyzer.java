@@ -20,13 +20,19 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.ekstazi.Config;
 import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
+import org.ekstazi.changelevel.Macros;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.log.Log;
 import org.ekstazi.monitor.CoverageMonitor;
@@ -77,6 +83,7 @@ public final class DependencyAnalyzer {
 
     protected static Set<String> changedMethods;
 
+    protected static List<String> hotfiles;
     /**
      * Constructor.
      */
@@ -228,7 +235,7 @@ public final class DependencyAnalyzer {
 
         Set<RegData> regData = mStorer.load(mRootDir, className, methodName);
         boolean isAffected;
-        if (Config.FINERTS_ON_V) {
+        if (Config.FINERTS_ON_V && Config.MRTS_ON_V) {
             isAffected = isAffected(className.replace(".", "/"), regData);
         }else {
             isAffected = isAffected(regData);
@@ -303,42 +310,35 @@ public final class DependencyAnalyzer {
         CoverageMonitor.clean();
     }
 
-    protected boolean isAffected(String dirName, String className, String methodName) {
-        if (Config.FINERTS_ON_V && Config.MRTS_ON_V){
-            if (changedMethods == null){
-                try {
-//                    long start = System.currentTimeMillis();
-                    List<ClassReader> classReaderList = getClassReaders(".");
-
-                    // find the methods that each method calls
-                    findMethodsinvoked(classReaderList);
-
-                    // suppose that test classes have Test in their class name
-                    Set<String> testClasses = new HashSet<>();
-                    for (ClassReader c : classReaderList){
-                        if (c.getClassName().contains("Test")){
-                            testClasses.add(c.getClassName().split("\\$")[0]);
-                        }
-                    }
-                    test2methods = getDeps(methodName2MethodNames, testClasses);
-                    changedMethods = getChangedMethods(testClasses);
-//                    long end = System.currentTimeMillis();
-//                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
-                }catch (Exception e){
-                    throw new RuntimeException(e);
-                }
-            }
-            String internalClassName = className.replace(".", "/");
-            return isAffected(internalClassName, mStorer.load(dirName, className, methodName));
-        }else {
-            return isAffected(mStorer.load(dirName, className, methodName));
-        }
-    }
-
     protected boolean isAffected(String testClass, Set<RegData> regData){
         if (regData == null || regData.size() == 0){
             return true;
         }
+
+        if (changedMethods == null){
+            try {
+//                    long start = System.currentTimeMillis();
+                List<ClassReader> classReaderList = getClassReaders(".");
+
+                // find the methods that each method calls
+                findMethodsinvoked(classReaderList);
+
+                // suppose that test classes have Test in their class name
+                Set<String> testClasses = new HashSet<>();
+                for (ClassReader c : classReaderList){
+                    if (c.getClassName().contains("Test")){
+                        testClasses.add(c.getClassName().split("\\$")[0]);
+                    }
+                }
+                test2methods = getDeps(methodName2MethodNames, testClasses);
+                changedMethods = getChangedMethods(testClasses);
+//                    long end = System.currentTimeMillis();
+//                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
+            }catch (Exception e){
+                throw new RuntimeException(e);
+            }
+        }
+    
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
@@ -349,7 +349,27 @@ public final class DependencyAnalyzer {
                 else
                     i = i + + "target/classes/".length();
                 String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
-                clModifiedClasses.add(internalName);
+
+                if (Config.HOTFILE_ON_V){
+                    if (hotfiles == null){
+                        hotfiles = new ArrayList<>();
+                        Path path = Paths.get(Macros.HOTFILE_PATH);
+                        if (Files.exists(path)){
+                            try (Stream<String> lines = Files.lines(path)) {
+                                hotfiles = lines.collect(Collectors.toList());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    if (!hotfiles.contains(internalName)){
+                        return true;
+                    }else{
+                        clModifiedClasses.add(internalName);
+                    }
+                }else{
+                    clModifiedClasses.add(internalName);
+                }
             }
         }
 
@@ -365,7 +385,6 @@ public final class DependencyAnalyzer {
         if (mlUsedClasses.containsAll(clModifiedClasses)){
             // method level
             for (String clModifiedClass : clModifiedClasses){
-                // todo
                 for (String method : changedMethods){
                     if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
                         return true;

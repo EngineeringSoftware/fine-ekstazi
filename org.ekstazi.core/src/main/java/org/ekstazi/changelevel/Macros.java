@@ -21,5 +21,6 @@ public class Macros {
     static int numSHA = 50;
     static String SKIPS = " -Djacoco.skip -Dcheckstyle.skip -Drat.skip -Denforcer.skip -Danimal.sniffer.skip " +
             "-Dmaven.javadoc.skip -Dfindbugs.skip -Dwarbucks.skip -Dmodernizer.skip -Dimpsort.skip -Dpmd.skip -Dxjc.skip";
+    public static String HOTFILE_PATH = "hotfiles.txt";
 
 }

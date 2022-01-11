@@ -370,6 +370,7 @@ public final class Config {
         X_DEPENDENCIES_SAVE_V = getBoolean(props, X_DEPENDENCIES_SAVE_N, X_DEPENDENCIES_SAVE_V);
         FINERTS_ON_V = getBoolean(props, FINERTS_ON_N, FINERTS_ON_V);
         MRTS_ON_V = getBoolean(props, MRTS_ON_N, MRTS_ON_V);
+        HOTFILE_ON_V = getBoolean(props, MRTS_ON_N, HOTFILE_ON_V);
         DEBUG_V = getBoolean(props, DEBUG_N, DEBUG_V);
         DEBUG_MODE_V = DebugMode.fromString(getString(props, DEBUG_MODE_N, DEBUG_MODE_V.toString()));
         CACHE_SIZES_V = getInteger(props, CACHE_SIZES_N, CACHE_SIZES_V);
