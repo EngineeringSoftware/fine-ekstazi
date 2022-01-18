@@ -314,34 +314,33 @@ public final class DependencyAnalyzer {
         if (regData == null || regData.size() == 0){
             return true;
         }
-
-        if (changedMethods == null){
-            try {
-//                    long start = System.currentTimeMillis();
-                List<ClassReader> classReaderList = getClassReaders(".");
-
-                // find the methods that each method calls
-                findMethodsinvoked(classReaderList);
-
-                // suppose that test classes have Test in their class name
-                Set<String> testClasses = new HashSet<>();
-                for (ClassReader c : classReaderList){
-                    if (c.getClassName().contains("Test")){
-                        testClasses.add(c.getClassName().split("\\$")[0]);
-                    }
-                }
-                test2methods = getDeps(methodName2MethodNames, testClasses);
-                changedMethods = getChangedMethods(testClasses);
-//                    long end = System.currentTimeMillis();
-//                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
-            }catch (Exception e){
-                throw new RuntimeException(e);
-            }
-        }
     
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
+                if (changedMethods == null){
+                    try {
+                        // long start = System.currentTimeMillis();
+                        List<ClassReader> classReaderList = getClassReaders(".");
+        
+                        // find the methods that each method calls
+                        findMethodsinvoked(classReaderList);
+        
+                        // suppose that test classes have Test in their class name
+                        Set<String> testClasses = new HashSet<>();
+                        for (ClassReader c : classReaderList){
+                            if (c.getClassName().contains("Test")){
+                                testClasses.add(c.getClassName().split("\\$")[0]);
+                            }
+                        }
+                        test2methods = getDeps(methodName2MethodNames, testClasses);
+                        changedMethods = getChangedMethods(testClasses);
+                        // long end = System.currentTimeMillis();
+                        // System.out.println("[DependencyAnalyzer, time for method level dependency]: " + (end - start)/1000.0);
+                    }catch (Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
                 String urlExternalForm = el.getURLExternalForm();
                 int i = urlExternalForm.indexOf("target/classes/");
                 if (i == -1)

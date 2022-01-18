@@ -79,30 +79,6 @@ abstract class AbstractCheck {
             }
         }
         if (Config.FINERTS_ON_V && Config.MRTS_ON_V){
-            if (changedMethods == null) {
-                try {
-//                    long start = System.currentTimeMillis();
-                    List<ClassReader> classReaderList = getClassReaders(".");
-
-                    // find the methods that each method calls
-                    findMethodsinvoked(classReaderList);
-
-                    // suppose that test classes have Test in their class name
-                    Set<String> testClasses = new HashSet<>();
-                    for (ClassReader c : classReaderList) {
-                        if (c.getClassName().contains("Test")) {
-                            testClasses.add(c.getClassName().split("\\$")[0]);
-                        }
-                    }
-                    // TODO: if finerts is on, get deps
-                    test2methods = getDeps(methodName2MethodNames, testClasses);
-                    changedMethods = getChangedMethods(testClasses);
-//                    long end = System.currentTimeMillis();
-//                    System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
             String internalClassName = className.replace(".", "/");
             return isAffected(internalClassName, mStorer.load(dirName, className, methodName));
         }else {
@@ -114,9 +90,67 @@ abstract class AbstractCheck {
         if (regData == null || regData.size() == 0){
             return true;
         }
+
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
+                if (changedMethods == null) {
+                    try {
+                        // long start = System.currentTimeMillis();
+                        List<ClassReader> classReaderList = getClassReaders(".");
+        
+                        // find the methods that each method calls
+                        // long m2mStart = System.currentTimeMillis();
+                        findMethodsinvoked(classReaderList);
+                        // long m2mEnd = System.currentTimeMillis();
+                        // System.out.println("[m2m time]: " + (m2mEnd - m2mStart)/1000.0);
+                        // suppose that test classes have Test in their class name
+                        Set<String> testClasses = new HashSet<>();
+                        for (ClassReader c : classReaderList) {
+                            if (c.getClassName().contains("Test")) {
+                                testClasses.add(c.getClassName().split("\\$")[0]);
+                            }
+                        }
+                        // TODO: if finerts is on, get deps
+                        // long depsStart = System.currentTimeMillis();
+                        test2methods = getDeps(methodName2MethodNames, testClasses);
+                        // // verify the results of DFS and BFS are the same
+                        // Map<String, Set<String>> test2methodsPrime = getDepsBFS(methodName2MethodNames, testClasses);
+                        // test2methods = getDepsBFS(methodName2MethodNames, testClasses);
+                        // for (String test : test2methods.keySet()) {
+                        //     if (!test2methodsPrime.containsKey(test)){
+                        //         System.out.println("test: " + test);
+                        //         System.out.println("test2methods and test2methodsPrime should contain same test");
+                        //         // throw new RuntimeException("test2methods and test2methodsPrime should contain same test");
+                        //     }
+                        //     if (test2methods.get(test).size() != test2methodsPrime.get(test).size()) {
+                        //         System.out.println("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());
+                        //         Set<String> diffSet = (TreeSet<String>) test2methodsPrime.get(test);
+                        //         diffSet.removeAll(test2methods.get(test));
+                        //         if (test.equals("org/apache/commons/codec/language/bm/RuleTest")){
+                        //             System.out.println("diff: " + diffSet);
+                        //             for (String method : methodName2MethodNames.keySet()){
+                        //                 if (method.startsWith(test)){
+                        //                     System.out.println(method + " " + methodName2MethodNames.get(method));
+                        //                     HashSet<String> intersection = new HashSet(methodName2MethodNames.get(method));
+                        //                     intersection.retainAll(diffSet);
+                        //                     System.out.println(intersection);
+                        //                 }
+                        //             }
+                        //         }
+                        //         // throw new RuntimeException("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());   
+                        //     }
+                        // }
+                        // long depsEnd = System.currentTimeMillis();
+                        // System.out.println("[deps time]: " + (depsEnd - depsStart)/1000.0);
+        
+                        changedMethods = getChangedMethods(testClasses);
+                        // long end = System.currentTimeMillis();
+                        // System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 //parse the url from external form to internal form
                 String urlExternalForm = el.getURLExternalForm();
                 int i = urlExternalForm.indexOf("target/classes/");
