@@ -114,6 +114,7 @@ abstract class AbstractCheck {
                         // TODO: if finerts is on, get deps
                         // long depsStart = System.currentTimeMillis();
                         test2methods = getDeps(methodName2MethodNames, testClasses);
+                        saveMap(test2methods, "test2methods.txt");
                         // // verify the results of DFS and BFS are the same
                         // Map<String, Set<String>> test2methodsPrime = getDepsBFS(methodName2MethodNames, testClasses);
                         // test2methods = getDepsBFS(methodName2MethodNames, testClasses);

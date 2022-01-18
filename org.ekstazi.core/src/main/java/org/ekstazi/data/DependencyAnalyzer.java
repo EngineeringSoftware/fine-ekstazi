@@ -333,7 +333,9 @@ public final class DependencyAnalyzer {
                                 testClasses.add(c.getClassName().split("\\$")[0]);
                             }
                         }
-                        test2methods = getDeps(methodName2MethodNames, testClasses);
+                        // TODO: instead of calculating the method graph, use the cache
+                        // test2methods = getDeps(methodName2MethodNames, testClasses);
+                        test2methods = readMap("test2methods.txt");
                         changedMethods = getChangedMethods(testClasses);
                         // long end = System.currentTimeMillis();
                         // System.out.println("[DependencyAnalyzer, time for method level dependency]: " + (end - start)/1000.0);

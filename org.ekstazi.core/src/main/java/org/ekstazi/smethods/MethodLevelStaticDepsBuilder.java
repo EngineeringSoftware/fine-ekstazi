@@ -2,8 +2,10 @@ package org.ekstazi.smethods;
 
 import org.ekstazi.asm.ClassReader;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -161,10 +163,28 @@ public class MethodLevelStaticDepsBuilder{
             //invokedMethods saved in csv format
             String invokedMethods = String.join(",", mapToStore.get(methodName));
             pw.println(methodName + " " + invokedMethods);
-            pw.println();
         }
         pw.flush();
         pw.close();
+    }
+
+    public static Map<String, Set<String>> readMap(String filename) throws Exception {
+        Map<String, Set<String>> map = new HashMap<>();
+        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        File file = new File(directory, filename);
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = br.readLine()) != null) {
+            String[] tokens = line.split(" ");
+            String methodName = tokens[0];
+            Set<String> invokedMethods = new HashSet<>();
+            for (String method : tokens[1].split(",")) {
+                invokedMethods.add(method);
+            }
+            map.put(methodName, invokedMethods);
+        }
+        br.close();
+        return map;    
     }
 
     public static void saveSet(Set<String> setToStore, String fileName) throws Exception {
