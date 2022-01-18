@@ -10,6 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -180,7 +184,62 @@ public class MethodLevelStaticDepsBuilder{
         pw.close();
     }
 
+    public static Set<String> getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods, Map<String, Set<String>> depsCache){
+        HashSet<String> deps = new HashSet<>();
+        if (depsCache.containsKey(methodName)){
+            deps = (HashSet<String>) depsCache.get(methodName);
+            visitedMethods.addAll(deps);
+        }else{
+            if (methodName2MethodNames.containsKey(methodName)){
+                for (String method : methodName2MethodNames.get(methodName)){
+                    if (!visitedMethods.contains(method)){
+                        visitedMethods.add(method);
+                        deps.addAll(getDepsHelper(method, methodName2MethodNames, visitedMethods, depsCache));
+                    }
+                }
+            }
+        }
+        depsCache.put(methodName, deps);
+        return deps;
+    }
+
+    // simple DFS
+    // public static void getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods){
+    //     if (methodName2MethodNames.containsKey(methodName)){
+    //         for (String method : methodName2MethodNames.get(methodName)){
+    //             if (!visitedMethods.contains(method)){
+    //                 visitedMethods.add(method);
+    //                 getDepsHelper(method, methodName2MethodNames, visitedMethods, depsCache);
+    //             }
+    //         }
+    //     }
+    // }
+
     public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
+        Map<String, Set<String>> test2methods = new HashMap<>();
+        Map<String, Set<String>> depsCache = new HashMap<>();
+        for (String testClass : testClasses){
+            // DFS
+            Set<String> methodDeps = new HashSet<>();
+            HashSet<String> visited = new HashSet<>();
+            for (String method : methodName2MethodNames.keySet()){
+                if (method.startsWith(testClass+"#")){
+                    visited.add(method);
+                    getDepsHelper(method, methodName2MethodNames, visited, depsCache);
+                    methodDeps.addAll(visited);
+                    // methodDeps.addAll(getDepsHelper(methodName2MethodNames, method, visited, depsCache));
+                }
+            }
+            testClass = testClass.split("\\$")[0];
+            Set<String> existedDeps = test2methods.getOrDefault(testClass, new HashSet<>());
+            existedDeps.addAll(methodDeps);
+            test2methods.put(testClass, existedDeps);
+        }
+        return test2methods;
+    }
+
+    // BFS without any optimization
+    public static Map<String, Set<String>> getDepsBFS(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
         // filter the test2methods with regData
         Map<String, Set<String>> test2methods = new HashMap<>();
         for (String testClass : testClasses){
@@ -197,17 +256,68 @@ public class MethodLevelStaticDepsBuilder{
 
             while (!queue.isEmpty()){
                 String currentMethod = queue.pollFirst();
-                for (String invokedMethod : methodName2MethodNames.getOrDefault(currentMethod, new HashSet<>())){
-                    if (!visitedMethods.contains(invokedMethod)) {
-                        queue.add(invokedMethod);
-                        visitedMethods.add(invokedMethod);
+                for (String caller : methodName2MethodNames.getOrDefault(currentMethod, new HashSet<>())){
+                    if (!visitedMethods.contains(caller)) {
+                        // TODO: following three lines 
+                        if (testClass.split("\\$")[0].equals("org/apache/commons/codec/language/bm/RuleTest") && caller.equals("org/apache/commons/codec/language/bm/Languages#NO_LANGUAGES")){
+                            System.out.println(currentMethod + " caller: " + caller);
+                        }
+                        queue.add(caller);
+                        visitedMethods.add(caller);
                     }
                 }
             }
             testClass = testClass.split("\\$")[0];
-            test2methods.put(testClass, visitedMethods);
+            Set<String> existedDeps = test2methods.getOrDefault(testClass, new TreeSet<>());
+            existedDeps.addAll(visitedMethods);
+            test2methods.put(testClass, existedDeps);
         }
         return test2methods;
     }
+    
+    // // multi-threaded version
+    // public static Set<String> getDepsHelper(Map<String, Set<String>> methodName2MethodNames, String testClass) {
+    //     Set<String> visitedMethods = new TreeSet<>();
+    //     //BFS
+    //     ArrayDeque<String> queue = new ArrayDeque<>();
 
+    //     //initialization
+    //     for (String method : methodName2MethodNames.keySet()){
+    //         if (method.startsWith(testClass+"#")){
+    //             queue.add(method);
+    //             visitedMethods.add(method);
+    //         }
+    //     }
+
+    //     while (!queue.isEmpty()){
+    //         String currentMethod = queue.pollFirst();
+    //         for (String invokedMethod : methodName2MethodNames.getOrDefault(currentMethod, new HashSet<>())){
+    //             if (!visitedMethods.contains(invokedMethod)) {
+    //                 queue.add(invokedMethod);
+    //                 visitedMethods.add(invokedMethod);
+    //             }
+    //         }
+    //     }
+    //     return visitedMethods;
+    // }
+
+    // public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses) {
+    //     Map<String, Set<String>> test2methods = new ConcurrentSkipListMap<>();
+    //     ExecutorService service = null;
+    //     try {
+    //         service = Executors.newFixedThreadPool(16);
+    //         for (final String testClass : testClasses)
+    //         {
+    //             service.submit(() -> {
+    //                 Set<String> invokedMethods = getDepsHelper(methodName2MethodNames, testClass);
+    //                 test2methods.put(testClass, invokedMethods);
+    //             });
+    //         }
+    //         service.shutdown();
+    //         service.awaitTermination(5, TimeUnit.SECONDS);
+    //     } catch (Exception e) {
+    //         throw new RuntimeException(e);
+    //     }
+    //     return test2methods;
+    // }
 }
