@@ -43,7 +43,7 @@ public class MethodLevelSelection {
 
             Set<String> changeTypePaths = new HashSet<>();
             String serPath = TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME + "/" + CHANGE_TYPES_DIR_NAME;
-            System.out.println("serPath: " + serPath);
+            // System.out.println("serPath: " + serPath);
             if (new File(serPath).exists()) {
                 changeTypePaths = Files.walk(Paths.get(serPath))
                         .filter(Files::isRegularFile)
@@ -53,7 +53,7 @@ public class MethodLevelSelection {
                         .collect(Collectors.toSet());
             }
 
-            System.out.println("changeTypePaths: " + changeTypePaths.size());
+            // System.out.println("changeTypePaths: " + changeTypePaths.size());
 
             for (Path classPath : classPaths){
                 byte[] array = Files.readAllBytes(classPath);
