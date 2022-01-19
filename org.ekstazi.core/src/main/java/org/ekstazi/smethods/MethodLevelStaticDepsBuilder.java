@@ -204,40 +204,20 @@ public class MethodLevelStaticDepsBuilder{
         pw.close();
     }
 
-    public static Set<String> getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods, Map<String, Set<String>> depsCache){
-        HashSet<String> deps = new HashSet<>();
-        if (depsCache.containsKey(methodName)){
-            deps = (HashSet<String>) depsCache.get(methodName);
-            visitedMethods.addAll(deps);
-        }else{
-            if (methodName2MethodNames.containsKey(methodName)){
-                for (String method : methodName2MethodNames.get(methodName)){
-                    if (!visitedMethods.contains(method)){
-                        visitedMethods.add(method);
-                        deps.addAll(getDepsHelper(method, methodName2MethodNames, visitedMethods, depsCache));
-                    }
+    // simple DFS
+    public static void getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods){
+        if (methodName2MethodNames.containsKey(methodName)){
+            for (String method : methodName2MethodNames.get(methodName)){
+                if (!visitedMethods.contains(method)){
+                    visitedMethods.add(method);
+                    getDepsHelper(method, methodName2MethodNames, visitedMethods);
                 }
             }
         }
-        depsCache.put(methodName, deps);
-        return deps;
     }
-
-    // simple DFS
-    // public static void getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods){
-    //     if (methodName2MethodNames.containsKey(methodName)){
-    //         for (String method : methodName2MethodNames.get(methodName)){
-    //             if (!visitedMethods.contains(method)){
-    //                 visitedMethods.add(method);
-    //                 getDepsHelper(method, methodName2MethodNames, visitedMethods, depsCache);
-    //             }
-    //         }
-    //     }
-    // }
 
     public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
         Map<String, Set<String>> test2methods = new HashMap<>();
-        Map<String, Set<String>> depsCache = new HashMap<>();
         for (String testClass : testClasses){
             // DFS
             Set<String> methodDeps = new HashSet<>();
@@ -245,9 +225,8 @@ public class MethodLevelStaticDepsBuilder{
             for (String method : methodName2MethodNames.keySet()){
                 if (method.startsWith(testClass+"#")){
                     visited.add(method);
-                    getDepsHelper(method, methodName2MethodNames, visited, depsCache);
+                    getDepsHelper(method, methodName2MethodNames, visited);
                     methodDeps.addAll(visited);
-                    // methodDeps.addAll(getDepsHelper(methodName2MethodNames, method, visited, depsCache));
                 }
             }
             testClass = testClass.split("\\$")[0];
@@ -257,6 +236,49 @@ public class MethodLevelStaticDepsBuilder{
         }
         return test2methods;
     }
+
+
+    // public static Set<String> getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods, Map<String, Set<String>> depsCache){
+    //     HashSet<String> deps = new HashSet<>();
+    //     if (depsCache.containsKey(methodName)){
+    //         deps = (HashSet<String>) depsCache.get(methodName);
+    //         visitedMethods.addAll(deps);
+    //     }else{
+    //         if (methodName2MethodNames.containsKey(methodName)){
+    //             for (String method : methodName2MethodNames.get(methodName)){
+    //                 if (!visitedMethods.contains(method)){
+    //                     visitedMethods.add(method);
+    //                     deps.addAll(getDepsHelper(method, methodName2MethodNames, visitedMethods, depsCache));
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     depsCache.put(methodName, deps);
+    //     return deps;
+    // }
+
+    // public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
+    //     Map<String, Set<String>> test2methods = new HashMap<>();
+    //     Map<String, Set<String>> depsCache = new HashMap<>();
+    //     for (String testClass : testClasses){
+    //         // DFS
+    //         Set<String> methodDeps = new HashSet<>();
+    //         HashSet<String> visited = new HashSet<>();
+    //         for (String method : methodName2MethodNames.keySet()){
+    //             if (method.startsWith(testClass+"#")){
+    //                 visited.add(method);
+    //                 getDepsHelper(method, methodName2MethodNames, visited, depsCache);
+    //                 methodDeps.addAll(visited);
+    //                 // methodDeps.addAll(getDepsHelper(methodName2MethodNames, method, visited, depsCache));
+    //             }
+    //         }
+    //         testClass = testClass.split("\\$")[0];
+    //         Set<String> existedDeps = test2methods.getOrDefault(testClass, new HashSet<>());
+    //         existedDeps.addAll(methodDeps);
+    //         test2methods.put(testClass, existedDeps);
+    //     }
+    //     return test2methods;
+    // }
 
     // BFS without any optimization
     public static Map<String, Set<String>> getDepsBFS(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){

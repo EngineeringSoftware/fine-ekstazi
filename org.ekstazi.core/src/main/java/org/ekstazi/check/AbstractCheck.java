@@ -117,7 +117,8 @@ abstract class AbstractCheck {
                         saveMap(test2methods, "test2methods.txt");
                         // // verify the results of DFS and BFS are the same
                         // Map<String, Set<String>> test2methodsPrime = getDepsBFS(methodName2MethodNames, testClasses);
-                        // test2methods = getDepsBFS(methodName2MethodNames, testClasses);
+                        // saveMap(test2methodsPrime, "test2methodsPrime.txt");
+
                         // for (String test : test2methods.keySet()) {
                         //     if (!test2methodsPrime.containsKey(test)){
                         //         System.out.println("test: " + test);
@@ -126,19 +127,9 @@ abstract class AbstractCheck {
                         //     }
                         //     if (test2methods.get(test).size() != test2methodsPrime.get(test).size()) {
                         //         System.out.println("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());
-                        //         Set<String> diffSet = (TreeSet<String>) test2methodsPrime.get(test);
-                        //         diffSet.removeAll(test2methods.get(test));
-                        //         if (test.equals("org/apache/commons/codec/language/bm/RuleTest")){
-                        //             System.out.println("diff: " + diffSet);
-                        //             for (String method : methodName2MethodNames.keySet()){
-                        //                 if (method.startsWith(test)){
-                        //                     System.out.println(method + " " + methodName2MethodNames.get(method));
-                        //                     HashSet<String> intersection = new HashSet(methodName2MethodNames.get(method));
-                        //                     intersection.retainAll(diffSet);
-                        //                     System.out.println(intersection);
-                        //                 }
-                        //             }
-                        //         }
+                        //         // Set<String> diffSet = (TreeSet<String>) test2methodsPrime.get(test);
+                        //         // diffSet.removeAll(test2methods.get(test));
+                        //         // System.out.println("[diffSet]: " + diffSet);
                         //         // throw new RuntimeException("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());   
                         //     }
                         // }
