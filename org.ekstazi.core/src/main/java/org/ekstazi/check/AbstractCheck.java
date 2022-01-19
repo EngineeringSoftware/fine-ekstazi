@@ -86,6 +86,23 @@ abstract class AbstractCheck {
         }
     }
 
+    private void verify(Map<String, Set<String>> test2methods, Map<String, Set<String>> test2methodsPrime){
+        for (String test : test2methods.keySet()) {
+            if (!test2methodsPrime.containsKey(test)){
+                System.out.println("test: " + test);
+                System.out.println("test2methods and test2methodsPrime should contain same test");
+                // throw new RuntimeException("test2methods and test2methodsPrime should contain same test");
+            }
+            if (test2methods.get(test).size() != test2methodsPrime.get(test).size()) {
+                System.out.println("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());
+                // Set<String> diffSet = (TreeSet<String>) test2methodsPrime.get(test);
+                // diffSet.removeAll(test2methods.get(test));
+                // System.out.println("[diffSet]: " + diffSet);
+                // throw new RuntimeException("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());   
+            }
+        }
+    }
+
     protected boolean isAffected(String testClass, Set<RegData> regData){
         if (regData == null || regData.size() == 0){
             return true;
@@ -118,21 +135,7 @@ abstract class AbstractCheck {
                         // // verify the results of DFS and BFS are the same
                         // Map<String, Set<String>> test2methodsPrime = getDepsBFS(methodName2MethodNames, testClasses);
                         // saveMap(test2methodsPrime, "test2methodsPrime.txt");
-
-                        // for (String test : test2methods.keySet()) {
-                        //     if (!test2methodsPrime.containsKey(test)){
-                        //         System.out.println("test: " + test);
-                        //         System.out.println("test2methods and test2methodsPrime should contain same test");
-                        //         // throw new RuntimeException("test2methods and test2methodsPrime should contain same test");
-                        //     }
-                        //     if (test2methods.get(test).size() != test2methodsPrime.get(test).size()) {
-                        //         System.out.println("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());
-                        //         // Set<String> diffSet = (TreeSet<String>) test2methodsPrime.get(test);
-                        //         // diffSet.removeAll(test2methods.get(test));
-                        //         // System.out.println("[diffSet]: " + diffSet);
-                        //         // throw new RuntimeException("[test2methods]: " + test + " " + test2methods.get(test).size() + " " + test2methodsPrime.get(test).size());   
-                        //     }
-                        // }
+                        // verify(test2methods, test2methodsPrime);
                         // long depsEnd = System.currentTimeMillis();
                         // System.out.println("[deps time]: " + (depsEnd - depsStart)/1000.0);
         
@@ -232,6 +235,7 @@ abstract class AbstractCheck {
                     curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
                             new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
                     changed = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
+                    // System.out.println("[file changed]: " + fileName + " " + changed);
                 }
                 fileChangedCache.put(fileName, changed);
                 return changed;
