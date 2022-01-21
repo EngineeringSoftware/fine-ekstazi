@@ -114,7 +114,7 @@ public final class DependencyAnalyzer {
         String fullMethodName = name + "." + COV_EXT;
         Set<RegData> regData = mStorer.load(mRootDir, name, COV_EXT);
         boolean isAffected;
-        if (Config.FINERTS_ON_V) {
+        if (Config.FINERTS_ON_V && Config.MRTS_ON_V) {
             isAffected = isAffected(name.replace(".", "/"), regData);
         }else {
             isAffected = isAffected(regData);
@@ -171,7 +171,7 @@ public final class DependencyAnalyzer {
         boolean isAffected = true;
         String fullMethodName = className + "." + CLASS_EXT;
         Set<RegData> regData = mStorer.load(mRootDir, className, CLASS_EXT);
-        if (Config.FINERTS_ON_V) {
+        if (Config.FINERTS_ON_V && Config.MRTS_ON_V) {
             isAffected = isAffected(className.replace(".", "/"), regData);
         }else {
             isAffected = isAffected(regData);
