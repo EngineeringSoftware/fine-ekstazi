@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -217,49 +218,35 @@ public class MethodLevelStaticDepsBuilder{
     }
 
     public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
-        Map<String, Set<String>> test2methods = new HashMap<>();
-        for (String testClass : testClasses){
-            // DFS
-            Set<String> methodDeps = new HashSet<>();
-            HashSet<String> visited = new HashSet<>();
-            for (String method : methodName2MethodNames.keySet()){
-                if (method.startsWith(testClass+"#")){
-                    visited.add(method);
-                    getDepsHelper(method, methodName2MethodNames, visited);
-                    methodDeps.addAll(visited);
-                }
+        Map<String, Set<String>> test2methods = new ConcurrentSkipListMap<>();
+        ExecutorService service = null;
+        try {
+            service = Executors.newFixedThreadPool(16);
+            for (final String testClass : testClasses)
+            {
+                service.submit(() -> {
+                   Set<String> visited = new ConcurrentSkipListSet<>();
+                    Set<String> methodDeps = new ConcurrentSkipListSet<>();
+                    for (String method : methodName2MethodNames.keySet()){
+                        if (method.startsWith(testClass+"#")){
+                            visited.add(method);
+                            getDepsHelper(method, methodName2MethodNames, visited);
+                            methodDeps.addAll(visited);
+                        }
+                    }
+                    test2methods.put(testClass, visited);
+                });
             }
-            testClass = testClass.split("\\$")[0];
-            Set<String> existedDeps = test2methods.getOrDefault(testClass, new HashSet<>());
-            existedDeps.addAll(methodDeps);
-            test2methods.put(testClass, existedDeps);
+            service.shutdown();
+            service.awaitTermination(5, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return test2methods;
     }
 
-
-    // public static Set<String> getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods, Map<String, Set<String>> depsCache){
-    //     HashSet<String> deps = new HashSet<>();
-    //     if (depsCache.containsKey(methodName)){
-    //         deps = (HashSet<String>) depsCache.get(methodName);
-    //         visitedMethods.addAll(deps);
-    //     }else{
-    //         if (methodName2MethodNames.containsKey(methodName)){
-    //             for (String method : methodName2MethodNames.get(methodName)){
-    //                 if (!visitedMethods.contains(method)){
-    //                     visitedMethods.add(method);
-    //                     deps.addAll(getDepsHelper(method, methodName2MethodNames, visitedMethods, depsCache));
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     depsCache.put(methodName, deps);
-    //     return deps;
-    // }
-
     // public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
     //     Map<String, Set<String>> test2methods = new HashMap<>();
-    //     Map<String, Set<String>> depsCache = new HashMap<>();
     //     for (String testClass : testClasses){
     //         // DFS
     //         Set<String> methodDeps = new HashSet<>();
@@ -267,9 +254,8 @@ public class MethodLevelStaticDepsBuilder{
     //         for (String method : methodName2MethodNames.keySet()){
     //             if (method.startsWith(testClass+"#")){
     //                 visited.add(method);
-    //                 getDepsHelper(method, methodName2MethodNames, visited, depsCache);
+    //                 getDepsHelper(method, methodName2MethodNames, visited);
     //                 methodDeps.addAll(visited);
-    //                 // methodDeps.addAll(getDepsHelper(methodName2MethodNames, method, visited, depsCache));
     //             }
     //         }
     //         testClass = testClass.split("\\$")[0];
