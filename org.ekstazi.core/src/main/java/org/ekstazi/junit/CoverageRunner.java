@@ -70,6 +70,7 @@ public class CoverageRunner extends Runner implements Filterable, Sortable {
 
     @Override
     public void run(RunNotifier notifier) {
+        long start = System.currentTimeMillis();
         if (isIgnoreAllTests()) {
             return;
         } else if (isRunWithoutCoverage()) {
@@ -86,6 +87,8 @@ public class CoverageRunner extends Runner implements Filterable, Sortable {
                 Ekstazi.inst().endClassCoverage(mClz.getName(), outcomeListener.isFailOrError());
             }
         }
+        long end = System.currentTimeMillis();
+        System.out.println("EkstaziExecutionTime: " + (end - start));
     }
 
     // INTERNAL

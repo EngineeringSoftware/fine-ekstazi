@@ -59,7 +59,7 @@ public class DynamicSelectEkstaziMojo extends StaticSelectEkstaziMojo {
             executeThis();
         }
         long end = System.currentTimeMillis();
-        System.out.println("EkstaziAnalysisTime: " + (end-start)/1000.0);
+        System.out.println("EkstaziAnalysisTime: " + (end-start));
     }
 
     // INTERNAL

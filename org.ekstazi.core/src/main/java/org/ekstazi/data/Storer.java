@@ -129,6 +129,7 @@ public abstract class Storer {
      * Saves regression data.
      */
     public final void save(String dirName, String className, String methodName, Set<RegData> regData) {
+        long start = System.currentTimeMillis();
         // @Research(if statement).
         if (!Config.X_DEPENDENCIES_SAVE_V) {
             return;
@@ -171,8 +172,8 @@ public abstract class Storer {
                     }
                 }
             }
-//            long end = System.currentTimeMillis();
-//            System.out.println("[time for saving ChangeTypes]: " + (end - start) / 1000.0);
+           long end = System.currentTimeMillis();
+           System.out.println("EkstaziCollectionTime: " + (end - start));
         }
     }
 
