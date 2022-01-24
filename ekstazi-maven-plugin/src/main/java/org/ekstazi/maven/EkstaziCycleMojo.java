@@ -22,8 +22,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 
-import org.ekstazi.agent.EkstaziAgent;
-
 /**
  * This Mojo is used only to define Ekstazi lifecycle.  As Ekstazi has
  * to be run before test phase, there is a need for a Mojo that is
@@ -35,5 +33,8 @@ public class EkstaziCycleMojo extends StaticSelectEkstaziMojo {
 
     public void execute() throws MojoExecutionException {
         // Nothing.
+        long executeEnd = System.currentTimeMillis();
+        long executionTime = executeEnd - TimeConstant.selectEnd;
+        System.out.println("EkstaziExecutionTime: " + executionTime);
     }
 }
