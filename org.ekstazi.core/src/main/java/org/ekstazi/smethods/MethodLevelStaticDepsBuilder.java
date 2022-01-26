@@ -54,7 +54,7 @@ public class MethodLevelStaticDepsBuilder{
         // parse test classes to ChangeTypes
         // the following lines are added for testing purpose
         String serPath = TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME + "/" + CHANGE_TYPES_DIR_NAME;
-        List<Path> classFilePaths = Files.walk(Paths.get(classesDir)).filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".class")).collect(Collectors.toList());
+        List<Path> classFilePaths = Files.walk(Paths.get(classesDir)).filter(path -> path.toFile().isFile()).filter(path -> path.getFileName().toString().endsWith(".class")).collect(Collectors.toList());
         for (Path classFilePath : classFilePaths){
             //System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
             ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(classFilePath.toFile()));
@@ -108,7 +108,7 @@ public class MethodLevelStaticDepsBuilder{
         return Files.walk(Paths.get(directory))
                 .sequential()
                 .filter(x -> !x.toFile().isDirectory())
-                .filter(x -> x.toFile().getAbsolutePath().endsWith(".class"))
+                .filter(x -> x.toString().endsWith(".class") && x.toString().contains("target"))
                 .map(new Function<Path, ClassReader>() {
                     @Override
                     public ClassReader apply(Path t) {

@@ -38,7 +38,7 @@ public class MethodLevelSelection {
         try {
             List<Path> classPaths = Files.walk(Paths.get(TEST_PROJECT_PATH))
                     .filter(Files::isRegularFile)
-                    .filter(f -> f.toString().endsWith(".class"))
+                    .filter(f -> f.toString().endsWith(".class") && f.toString().contains("target"))
                     .collect(Collectors.toList());
 
             Set<String> changeTypePaths = new HashSet<>();

@@ -169,7 +169,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         try {
             List<Path> classPaths = Files.walk(Paths.get("."))
                     .filter(Files::isRegularFile)
-                    .filter(f -> f.toString().endsWith(".class"))
+                    .filter(f -> f.toString().endsWith(".class") && f.toString().contains("target"))
                     .collect(Collectors.toList());
             // subclass <-> superclasses
             HashMap<String, Set<String>> graph = new HashMap<>();
