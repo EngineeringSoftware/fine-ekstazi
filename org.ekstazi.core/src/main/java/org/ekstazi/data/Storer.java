@@ -142,7 +142,7 @@ public abstract class Storer {
         if(Config.FINERTS_ON_V){
             // TODO
             // If the directory for ChangeTypes objects do not exist, then it is first-time run.
-//            long start = System.currentTimeMillis();
+           long start = System.currentTimeMillis();
 
             String ctDirName = dirName + "/" + Names.CHANGE_TYPES_DIR_NAME;
             File ctDir = new File(ctDirName);
@@ -172,8 +172,8 @@ public abstract class Storer {
                     }
                 }
             }
-        //    long end = System.currentTimeMillis();
-        //    System.out.println("EkstaziCollectionTime: " + (end - start));
+           long end = System.currentTimeMillis();
+           System.out.println("FineEkstaziSaveChangeTypes: " + (end - start));
         }
     }
 

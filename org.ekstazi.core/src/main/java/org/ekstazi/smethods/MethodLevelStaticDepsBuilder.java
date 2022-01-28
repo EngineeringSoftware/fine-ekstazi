@@ -218,6 +218,7 @@ public class MethodLevelStaticDepsBuilder{
     }
 
     public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
+        long startTime = System.currentTimeMillis();
         Map<String, Set<String>> test2methods = new ConcurrentSkipListMap<>();
         ExecutorService service = null;
         try {
@@ -242,6 +243,8 @@ public class MethodLevelStaticDepsBuilder{
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        long endTime = System.currentTimeMillis();
+        System.out.println("FineEkstziTC: " + (endTime - startTime));
         return test2methods;
     }
 
