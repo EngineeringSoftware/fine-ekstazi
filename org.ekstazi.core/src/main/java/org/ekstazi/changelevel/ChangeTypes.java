@@ -1,30 +1,21 @@
 package org.ekstazi.changelevel;
 
-import org.ekstazi.Names;
 import org.ekstazi.asm.ClassReader;
 import org.ekstazi.util.FileUtil;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
 
 public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     private static final long serialVersionUID = 1234567L;
     public transient static HashMap<String, Set<String>> hierarchyGraph;
     public transient TreeMap<String, String> instanceFieldMap;
     public transient TreeMap<String, String> staticFieldMap;
-    public transient TreeMap<String, String> instanceMethodMap;
-    public transient TreeMap<String, String> staticMethodMap;
-    public static transient HashSet<String> testClasses;
 
     public TreeMap<String, String> constructorsMap;
-    public TreeMap<String, String> methodMap;
     public Set<String> fieldList;
+    public TreeMap<String, String> instanceMethodMap;
+    public TreeMap<String, String> staticMethodMap;
     public String curClass = "";
     public String superClass = "";
     public String urlExternalForm = "";
@@ -34,7 +25,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         constructorsMap = new TreeMap<>();
         instanceMethodMap = new TreeMap<>();
         staticMethodMap = new TreeMap<>();
-        methodMap = new TreeMap<>();
         instanceFieldMap = new TreeMap<>();
         staticFieldMap = new TreeMap<>();
         fieldList = new HashSet<>();
@@ -96,10 +86,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
 
         final ChangeTypes other = (ChangeTypes) obj;
 
-        if (hierarchyGraph == null){
-            getHierarchyGraph();
-        }
-
         boolean modified;
 
         if (fieldChange(fieldList, other.fieldList)){
@@ -127,74 +113,38 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         if (ChangeTypes.hierarchyGraph.containsKey(newCurClass) || ChangeTypes.hierarchyGraph.containsKey(oldCurClass)){
             hasHierarchy =  true;
         }
-        // if (testClasses == null){
-        //     testClasses = listTestClasses();
-        // }
-        modified = methodChange((TreeMap<String, String>) this.methodMap.clone(), (TreeMap<String, String>) other.methodMap.clone(), hasHierarchy);
+        modified = methodChange(this.instanceMethodMap, other.instanceMethodMap, hasHierarchy) || methodChange(this.staticMethodMap, other.staticMethodMap, hasHierarchy);
         return !modified;
     }
 
-    // public HashSet<String> listTestClasses(){
-    //     HashSet<String> testClasses = new HashSet<>();
-    //     File folder = new File(System.getProperty("user.dir") + "/" + Names.EKSTAZI_ROOT_DIR_NAME);
-    //     for (final File fileEntry : folder.listFiles()) {
-    //         String fileName = fileEntry.getName();
-    //         if (fileEntry.isFile() && fileName.endsWith(".clz")) {
-    //             testClasses.add(fileName.substring(0, fileName.length()-4).replace(".", "/"));
-    //         }
-    //     }
-    //     return testClasses;
-    // }
-
-    public static List<String> listFiles(String dir) {
-        List<String> res = new ArrayList<>();
+    public static void initHierarchyGraph(Set<String> classPaths){
+        // subclass <-> superclasses
+        HashMap<String, Set<String>> graph = new HashMap<>();
         try {
-            List<Path> pathList =  Files.find(Paths.get(dir), 999, (p, bfa) -> bfa.isRegularFile())
-                    .collect(Collectors.toList());
-            for(Path filePath : pathList){
-                if(!filePath.getFileName().toString().endsWith("class")){
+            for (String classPath : classPaths) {
+                byte[] bytes = FileUtil.readFile(new File(classPath));
+                ClassReader reader = new ClassReader(bytes);
+                String curClassName = reader.getClassName();
+                String superClassName = reader.getSuperName();
+                if (superClassName == null || superClassName.equals("java/lang/Object")){
                     continue;
+                }else{
+                    Set<String> h = graph.getOrDefault(curClassName, new HashSet<>());
+                    h.add(superClassName);
+                    graph.put(curClassName, h);
+
+                    h = graph.getOrDefault(superClassName, new HashSet<>());
+                    h.add(curClassName);
+                    graph.put(superClassName, h);
                 }
-                String curClassPath = filePath.getParent().toString()+"/"+filePath.getFileName().toString();
-                res.add(curClassPath);
             }
-        } catch (IOException e) {
+        }catch(Exception e){
             e.printStackTrace();
         }
-        return res;
-    }
-
-    public static void getHierarchyGraph(){
-        // Find all .class files in the given directory.
-        try {
-            List<Path> classPaths = Files.walk(Paths.get("."))
-                    .filter(Files::isRegularFile)
-                    .filter(f -> f.toString().endsWith(".class") && f.toString().contains("target"))
-                    .collect(Collectors.toList());
-            // subclass <-> superclasses
-            HashMap<String, Set<String>> graph = new HashMap<>();
-                for (Path classPath : classPaths) {
-                    byte[] bytes = FileUtil.readFile(classPath.toFile());
-                    ClassReader reader = new ClassReader(bytes);
-                    String curClassName = reader.getClassName();
-                    String superClassName = reader.getSuperName();
-                    if (superClassName != null && !Objects.equals(superClassName, "java/lang/Object")) {
-                        Set<String> h = graph.getOrDefault(curClassName, new HashSet<>());
-                        h.add(superClassName);
-                        graph.put(curClassName, h);
-
-                        h = graph.getOrDefault(superClassName, new HashSet<>());
-                        h.add(curClassName);
-                        graph.put(superClassName, h);
-                    }
-                }
-                if (hierarchyGraph == null){
-                    hierarchyGraph = new HashMap<>();
-                }
-                hierarchyGraph.putAll(graph);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
+        if (hierarchyGraph == null){
+            hierarchyGraph = new HashMap<>();
+        }
+        hierarchyGraph.putAll(graph);
     }
 
     private boolean fieldChange(Set<String> newFields, Set<String> oldFields){
@@ -215,27 +165,30 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
         }
     }
 
-    private boolean methodChange(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods, boolean hasHierarchy){
+    private boolean methodChange(TreeMap<String, String> oldMethodsPara, TreeMap<String, String> newMethodsPara, boolean hasHierarchy){
+        TreeMap<String, String> oldMethods = new TreeMap<>(oldMethodsPara);
+        TreeMap<String, String> newMethods = new TreeMap<>(newMethodsPara);
+       
         Set<String> methodSig = new HashSet<>(oldMethods.keySet());
         methodSig.addAll(newMethods.keySet());
         for (String sig : methodSig){
             if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
                 if (oldMethods.get(sig).equals(newMethods.get(sig))) {
-//                    System.out.println("remove sig: " + sig);
+                    // remove sig
                     oldMethods.remove(sig);
                     newMethods.remove(sig);
                 }else{
-//                    System.out.println("different sig: " + sig);
+                    // different sig
                     return true;
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
+                // sig changes but method body does not change
                 newMethods.values().remove(oldMethods.get(sig));
                 oldMethods.remove(sig);
-//                System.out.println("sig changes but method body does not change: " + sig);
             } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
+                // sig changes but method body does not change
                 oldMethods.values().remove(newMethods.get(sig));
                 newMethods.remove(sig);
-//                System.out.println("sig changes but method body does not change: " + sig);
             }
         }
 
@@ -253,16 +206,6 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             return false;
         }
         return true;
-    }
-
-    public static void main(String[] args){
-        String filePath = "/Users/liuyu/pipiyu/finerts/org.ekstazi.core/src/main/java/org/ekstazi/changelevel/A.class";
-        try {
-            byte[] array = Files.readAllBytes(Paths.get(filePath));
-            ChangeTypes preChangeTypes = removeDebugInfo(array);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override

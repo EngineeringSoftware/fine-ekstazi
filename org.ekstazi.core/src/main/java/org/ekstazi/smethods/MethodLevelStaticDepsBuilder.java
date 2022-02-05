@@ -1,31 +1,22 @@
 package org.ekstazi.smethods;
 
-import org.ekstazi.asm.ClassReader;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import static org.ekstazi.smethods.MethodLevelSelection.getInvokedConstructorsMap;
-import static org.ekstazi.smethods.MethodLevelSelection.getChangedMethods;
-import static org.ekstazi.smethods.Macros.*;
+import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
-import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
-import org.ekstazi.util.FileUtil;
+
+import static org.ekstazi.smethods.Macros.*;
 public class MethodLevelStaticDepsBuilder{
     // mvn exec:java -Dexec.mainClass=org.sekstazi.smethods.MethodLevelStaticDepsBuilder -Dmyproperty=/Users/liuyu/projects/finertsTest
 
@@ -37,120 +28,8 @@ public class MethodLevelStaticDepsBuilder{
     public static Map<String, Set<String>> hierarchy_parents = new HashMap<>();
     // for every class, find its children.
     public static Map<String, Set<String>> hierarchy_children = new HashMap<>();
-    // for every test class, find what method it depends on
-    public static Map<String, Set<String>> test2methods = new HashMap<>();
-
-    public static void main(String... args) throws Exception {
-        // We need at least the argument that points to the root
-        // directory where the search for .class files will start.
-        if (args.length < 1) {
-            throw new RuntimeException("Incorrect arguments");
-        }
-        String pathToStartDir = args[0];
-       
-        TEST_PROJECT_PATH = args[0];
-        // path to previous SHA's classes directory
-        String classesDir = args[1];
-        // parse test classes to ChangeTypes
-        // the following lines are added for testing purpose
-        String serPath = TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME + "/" + CHANGE_TYPES_DIR_NAME;
-        List<Path> classFilePaths = Files.walk(Paths.get(classesDir)).filter(path -> path.toFile().isFile()).filter(path -> path.getFileName().toString().endsWith(".class")).collect(Collectors.toList());
-        for (Path classFilePath : classFilePaths){
-            //System.out.println("[log] classPath: " + urlExternalForm.substring(urlExternalForm.indexOf("/")));
-            ChangeTypes curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(classFilePath.toFile()));
-            //System.out.println("[log] curClassName: " + curChangeTypes.curClass);
-            // System.out.println(serPath + "/" + classFilePath.toFile().getName().replace(".class", ".ser"));
-            String absolutePath = classFilePath.toAbsolutePath().toString();
-            String serFileName = "";
-            if (absolutePath.contains("target/classes/")){
-                int i = absolutePath.indexOf("target/classes/");
-                serFileName = absolutePath.substring(i + "target/classes/".length()).replace("/", ".").replace(".class", ".ser");
-            }else if(absolutePath.contains("target/test-classes/")){
-                int i = absolutePath.indexOf("target/test-classes/");
-                serFileName = absolutePath.substring(i + "target/test-classes/".length()).replace("/", ".").replace(".class", ".ser");
-            }
-            ChangeTypes.toFile(serPath + "/" + serFileName, curChangeTypes);
-        }
-
-        List<ClassReader> classReaderList = getClassReaders(pathToStartDir);
-
-        // find the methods that each method calls
-        findMethodsinvoked(classReaderList);
-
-        // suppose that test classes have Test in their class name
-        Set<String> testClasses = new HashSet<>();
-        for (String method : methodName2MethodNames.keySet()){
-            String className = method.split("#|\\$")[0];
-            if (className.contains("Test")){
-                testClasses.add(className);
-            }
-        }
-
-        Set<String> changedMethods = getChangedMethods(testClasses);
-        saveSet(changedMethods, "changedMethods.txt");
-        // collect invoked constructors for each method
-        Map<String, Set<String>> method2invokedConstructors = getInvokedConstructorsMap(methodName2MethodNames);
-
-        test2methods = getDeps(methodName2MethodNames, testClasses);
-
-        saveMap(method2invokedConstructors, "m2constructors.txt");
-        saveMap(methodName2MethodNames, "graph.txt");
-        saveMap(hierarchy_parents, "hierarchy_parents.txt");
-        saveMap(hierarchy_children, "hierarchy_children.txt");
-        saveMap(class2ContainedMethodNames, "class2methods.txt");
-        // save into a txt file ".ekstazi/methods.txt"
-        saveMap(test2methods, "methods.txt");
-    
-    }
-
-    //TODO: keeping all the classreaders would crash the memory
-    public static List<ClassReader> getClassReaders(String directory) throws IOException {
-        return Files.walk(Paths.get(directory))
-                .sequential()
-                .filter(x -> !x.toFile().isDirectory())
-                .filter(x -> x.toString().endsWith(".class") && x.toString().contains("target"))
-                .map(new Function<Path, ClassReader>() {
-                    @Override
-                    public ClassReader apply(Path t) {
-                        try {
-                            return new ClassReader(new FileInputStream(t.toFile()));
-                        } catch(IOException e) {
-                            System.out.println("Cannot parse file: "+t);
-                            return null;
-                        }
-                    }
-                })
-                .filter(x -> x != null)
-                .collect(Collectors.toList());
-    }
-
-    public static void findMethodsinvoked(List<ClassReader> classReaderList){
-        for (ClassReader classReader : classReaderList){
-            ClassToMethodsCollectorCV visitor = new ClassToMethodsCollectorCV(class2ContainedMethodNames , hierarchy_parents, hierarchy_children);
-            classReader.accept(visitor, ClassReader.SKIP_DEBUG);
-        }
-        for (ClassReader classReader : classReaderList){
-//            Set<String> classesInConstantPool = ConstantPoolParser.getClassNames(ByteBuffer.wrap(classReader.b));
-            //TODO: not keep methodName2MethodNames, hierarchies as fields
-            MethodCallCollectorCV visitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames);
-            classReader.accept(visitor, ClassReader.SKIP_DEBUG);
-        }
-        // deal with test class in a special way, all the @test method in hierarchy should be considered
-        for (String superClass : hierarchy_children.keySet()) {
-            if (superClass.contains("Test")) {
-                for (String subClass : hierarchy_children.getOrDefault(superClass, new HashSet<>())) {
-                    for (String methodSig : class2ContainedMethodNames.getOrDefault(superClass, new HashSet<>())) {
-                        String subClassKey = subClass + "#" + methodSig;
-                        String superClassKey = superClass + "#" + methodSig;
-                        methodName2MethodNames.computeIfAbsent(subClassKey, k -> new TreeSet<>()).add(superClassKey);
-                    }
-                }
-            }
-        }
-    }
 
     public static void saveMap(Map<String, Set<String>> mapToStore, String fileName) throws Exception {
-        // File directory = new File(".ekstazi");
         File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
         if (!directory.exists()) {
             directory.mkdir();
@@ -206,18 +85,29 @@ public class MethodLevelStaticDepsBuilder{
     }
 
     // simple DFS
-    public static void getDepsHelper(String methodName, Map<String, Set<String>> methodName2MethodNames, Set<String> visitedMethods){
+    public static void getDepsDFS(String methodName, Set<String> visitedMethods){
         if (methodName2MethodNames.containsKey(methodName)){
             for (String method : methodName2MethodNames.get(methodName)){
                 if (!visitedMethods.contains(method)){
                     visitedMethods.add(method);
-                    getDepsHelper(method, methodName2MethodNames, visitedMethods);
+                    getDepsDFS(method, visitedMethods);
                 }
             }
         }
     }
 
-    public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
+    public static Set<String> getDeps(String testClass){
+        Set<String> visited = new HashSet<>();
+        for (String method : methodName2MethodNames.keySet()){
+            if (method.startsWith(testClass+"#")){
+                visited.add(method);
+                getDepsDFS(method, visited);
+            }
+        }
+        return visited;
+    }
+
+    public static Map<String, Set<String>> getDeps(Set<String> testClasses){
         long startTime = System.currentTimeMillis();
         Map<String, Set<String>> test2methods = new ConcurrentSkipListMap<>();
         ExecutorService service = null;
@@ -227,12 +117,10 @@ public class MethodLevelStaticDepsBuilder{
             {
                 service.submit(() -> {
                    Set<String> visited = new ConcurrentSkipListSet<>();
-                    Set<String> methodDeps = new ConcurrentSkipListSet<>();
                     for (String method : methodName2MethodNames.keySet()){
                         if (method.startsWith(testClass+"#")){
                             visited.add(method);
-                            getDepsHelper(method, methodName2MethodNames, visited);
-                            methodDeps.addAll(visited);
+                            getDepsDFS(method, visited);
                         }
                     }
                     test2methods.put(testClass, visited);
@@ -244,111 +132,105 @@ public class MethodLevelStaticDepsBuilder{
             throw new RuntimeException(e);
         }
         long endTime = System.currentTimeMillis();
-        System.out.println("FineEkstziTC: " + (endTime - startTime));
+        System.out.println("FineEkstaziTC: " + (endTime - startTime));
         return test2methods;
     }
 
-    // public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
-    //     Map<String, Set<String>> test2methods = new HashMap<>();
-    //     for (String testClass : testClasses){
-    //         // DFS
-    //         Set<String> methodDeps = new HashSet<>();
-    //         HashSet<String> visited = new HashSet<>();
-    //         for (String method : methodName2MethodNames.keySet()){
-    //             if (method.startsWith(testClass+"#")){
-    //                 visited.add(method);
-    //                 getDepsHelper(method, methodName2MethodNames, visited);
-    //                 methodDeps.addAll(visited);
-    //             }
-    //         }
-    //         testClass = testClass.split("\\$")[0];
-    //         Set<String> existedDeps = test2methods.getOrDefault(testClass, new HashSet<>());
-    //         existedDeps.addAll(methodDeps);
-    //         test2methods.put(testClass, existedDeps);
-    //     }
-    //     return test2methods;
-    // }
-
-    // BFS without any optimization
-    public static Map<String, Set<String>> getDepsBFS(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses){
-        // filter the test2methods with regData
-        Map<String, Set<String>> test2methods = new HashMap<>();
-        for (String testClass : testClasses){
-            Set<String> visitedMethods = new TreeSet<>();
-            //BFS
-            ArrayDeque<String> queue = new ArrayDeque<>();
-            //initialization
-            for (String method : methodName2MethodNames.keySet()){
-                if (method.startsWith(testClass+"#")){
-                    queue.add(method);
-                    visitedMethods.add(method);
-                }
+    public static void findMethodsinvoked(Set<String> classPaths){
+        for (String classPath : classPaths){
+            try {
+                ClassReader classReader = new ClassReader(new FileInputStream(new File(classPath)));
+                ClassToMethodsCollectorCV classToMethodsVisitor = new ClassToMethodsCollectorCV(class2ContainedMethodNames, hierarchy_parents, hierarchy_children);
+                classReader.accept(classToMethodsVisitor, ClassReader.SKIP_DEBUG);    
+            } catch (IOException e) {
+                System.out.println("Cannot parse file: " + classPath);
+                continue;
+            }   
+        }
+        for (String classPath : classPaths){
+            try {
+                ClassReader classReader = new ClassReader(new FileInputStream(new File(classPath)));
+                //TODO: not keep methodName2MethodNames, hierarchies as fields
+                MethodCallCollectorCV methodClassVisitor = new MethodCallCollectorCV(methodName2MethodNames, hierarchy_parents, hierarchy_children, class2ContainedMethodNames);
+                classReader.accept(methodClassVisitor, ClassReader.SKIP_DEBUG);
+            } catch(IOException e) {
+                System.out.println("Cannot parse file: " + classPath);
+                continue;
             }
+        }
 
-            while (!queue.isEmpty()){
-                String currentMethod = queue.pollFirst();
-                for (String caller : methodName2MethodNames.getOrDefault(currentMethod, new HashSet<>())){
-                    if (!visitedMethods.contains(caller)) {
-                        // TODO: following three lines 
-                        if (testClass.split("\\$")[0].equals("org/apache/commons/codec/language/bm/RuleTest") && caller.equals("org/apache/commons/codec/language/bm/Languages#NO_LANGUAGES")){
-                            System.out.println(currentMethod + " caller: " + caller);
-                        }
-                        queue.add(caller);
-                        visitedMethods.add(caller);
+        // deal with test class in a special way, all the @test method in hierarchy should be considered
+        for (String superClass : hierarchy_children.keySet()) {
+            if (superClass.contains("Test")) {
+                for (String subClass : hierarchy_children.getOrDefault(superClass, new HashSet<>())) {
+                    for (String methodSig : class2ContainedMethodNames.getOrDefault(superClass, new HashSet<>())) {
+                        String subClassKey = subClass + "#" + methodSig;
+                        String superClassKey = superClass + "#" + methodSig;
+                        methodName2MethodNames.computeIfAbsent(subClassKey, k -> new TreeSet<>()).add(superClassKey);
                     }
                 }
             }
-            testClass = testClass.split("\\$")[0];
-            Set<String> existedDeps = test2methods.getOrDefault(testClass, new TreeSet<>());
-            existedDeps.addAll(visitedMethods);
-            test2methods.put(testClass, existedDeps);
         }
-        return test2methods;
     }
-    
-    // // multi-threaded version
-    // public static Set<String> getDepsHelper(Map<String, Set<String>> methodName2MethodNames, String testClass) {
-    //     Set<String> visitedMethods = new TreeSet<>();
-    //     //BFS
-    //     ArrayDeque<String> queue = new ArrayDeque<>();
 
-    //     //initialization
-    //     for (String method : methodName2MethodNames.keySet()){
-    //         if (method.startsWith(testClass+"#")){
-    //             queue.add(method);
-    //             visitedMethods.add(method);
-    //         }
-    //     }
+    public static Set<String> getChangedMethods(ChangeTypes preChangeTypes, ChangeTypes curChangeTypes){
+        Set<String> res = new HashSet<>();
+        if (preChangeTypes == null){
+            // does not exist before
+            if (curChangeTypes.curClass.contains("Test")) {
+                Set<String> methods = new HashSet<>();
+                curChangeTypes.instanceMethodMap.keySet().forEach(m -> methods.add(curChangeTypes.curClass + "#" +
+                        m.substring(0, m.indexOf(")") + 1)));
+                curChangeTypes.staticMethodMap.keySet().forEach(m -> methods.add(curChangeTypes.curClass + "#" +
+                        m.substring(0, m.indexOf(")") + 1)));
+                curChangeTypes.constructorsMap.keySet().forEach(m -> methods.add(curChangeTypes.curClass + "#" +
+                        m.substring(0, m.indexOf(")") + 1)));
+                res.addAll(methods);
+            }
+        }else {
+            if (!preChangeTypes.equals(curChangeTypes)) {
+                res.addAll(getChangedMethodsPerChangeType(preChangeTypes.instanceMethodMap,
+                        curChangeTypes.instanceMethodMap, curChangeTypes.curClass));
+                res.addAll(getChangedMethodsPerChangeType(preChangeTypes.staticMethodMap,
+                        curChangeTypes.staticMethodMap, curChangeTypes.curClass));
+                res.addAll(getChangedMethodsPerChangeType(preChangeTypes.constructorsMap,
+                        curChangeTypes.constructorsMap, curChangeTypes.curClass));
+            }
+        }    
+        return res;
+    }
 
-    //     while (!queue.isEmpty()){
-    //         String currentMethod = queue.pollFirst();
-    //         for (String invokedMethod : methodName2MethodNames.getOrDefault(currentMethod, new HashSet<>())){
-    //             if (!visitedMethods.contains(invokedMethod)) {
-    //                 queue.add(invokedMethod);
-    //                 visitedMethods.add(invokedMethod);
-    //             }
-    //         }
-    //     }
-    //     return visitedMethods;
-    // }
-
-    // public static Map<String, Set<String>> getDeps(Map<String, Set<String>> methodName2MethodNames, Set<String> testClasses) {
-    //     Map<String, Set<String>> test2methods = new ConcurrentSkipListMap<>();
-    //     ExecutorService service = null;
-    //     try {
-    //         service = Executors.newFixedThreadPool(16);
-    //         for (final String testClass : testClasses)
-    //         {
-    //             service.submit(() -> {
-    //                 Set<String> invokedMethods = getDepsHelper(methodName2MethodNames, testClass);
-    //                 test2methods.put(testClass, invokedMethods);
-    //             });
-    //         }
-    //         service.shutdown();
-    //         service.awaitTermination(5, TimeUnit.SECONDS);
-    //     } catch (Exception e) {
-    //         throw new RuntimeException(e);
-    //     }
-    //     return test2methods;
-    // }
+        static Set<String> getChangedMethodsPerChangeType(TreeMap<String, String> oldMethodsPara, TreeMap<String, String> newMethodsPara,
+                                                      String className){
+        Set<String> res = new HashSet<>();
+        TreeMap<String, String> oldMethods = new TreeMap<>(oldMethodsPara);
+        TreeMap<String, String> newMethods = new TreeMap<>(newMethodsPara);
+        // consider adding test class
+        Set<String> methodSig = new HashSet<>(oldMethods.keySet());
+        methodSig.addAll(newMethods.keySet());
+        for (String sig : methodSig){
+            if (oldMethods.containsKey(sig) && newMethods.containsKey(sig)){
+                if (oldMethods.get(sig).equals(newMethods.get(sig))) {
+                    oldMethods.remove(sig);
+                    newMethods.remove(sig);
+                }else{
+                    res.add(className + "#" + sig.substring(0, sig.indexOf(")")+1));
+                }
+            } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
+                newMethods.values().remove(oldMethods.get(sig));
+                oldMethods.remove(sig);
+            } else if (newMethods.containsKey(sig) && oldMethods.containsValue(newMethods.get(sig))){
+                oldMethods.values().remove(newMethods.get(sig));
+                newMethods.remove(sig);
+            }
+        }
+        // className is Test
+        String outerClassName = className.split("\\$")[0];
+        if (outerClassName.contains("Test")){
+            for (String sig : newMethods.keySet()){
+                res.add(className + "#" + sig.substring(0, sig.indexOf(")")+1));
+            }
+        }
+        return res;
+    }
 }

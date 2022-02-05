@@ -33,9 +33,15 @@ import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
@@ -330,4 +336,35 @@ public class FileUtil {
         }
     }
 
+    public static Set<String> getClassPaths(){
+        Set<String> newClassesPaths = new HashSet<String>();
+        try {
+            newClassesPaths = new HashSet<>(Files.walk(Paths.get("."))
+                                            .filter(Files::isRegularFile)
+                                            .filter(f -> (f.toString().endsWith(".class") && f.toString().contains("target")))
+                                            .map(f -> f.normalize().toAbsolutePath().toString())
+                                            .collect(Collectors.toList()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return newClassesPaths;
+    }
+
+    public static Set<String> listFiles(String dir) {
+        Set<String> res = new HashSet<>();
+        try {
+            List<Path> pathList =  Files.find(Paths.get(dir), 999, (p, bfa) -> !bfa.isDirectory())
+                    .collect(Collectors.toList());
+            for(Path filePath : pathList){
+                if(!filePath.getFileName().toString().endsWith("class")){
+                    continue;
+                }
+                String curClassPath = filePath.getParent().toString()+"/"+filePath.getFileName().toString();
+                res.add(curClassPath);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
 }

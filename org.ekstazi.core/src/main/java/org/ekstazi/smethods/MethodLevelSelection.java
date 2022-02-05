@@ -1,18 +1,5 @@
 package org.ekstazi.smethods;
-
-import org.ekstazi.changelevel.ChangeTypes;
-import org.ekstazi.util.FileUtil;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
-import static org.ekstazi.changelevel.FineTunedBytecodeCleaner.removeDebugInfo;
-import static org.ekstazi.smethods.Macros.*;
-
 public class MethodLevelSelection {
 
     public static Map<String, Set<String>> getInvokedConstructorsMap(Map<String, Set<String>> methodName2MethodNames){
@@ -31,70 +18,6 @@ public class MethodLevelSelection {
         }
         return method2invokedConstructors;
     }
-
-    public static Set<String> getChangedMethods(Set<String> allTests){
-        Set<String> res = new HashSet<>();
-
-        try {
-            List<Path> classPaths = Files.walk(Paths.get(TEST_PROJECT_PATH))
-                    .filter(Files::isRegularFile)
-                    .filter(f -> f.toString().endsWith(".class") && f.toString().contains("target"))
-                    .collect(Collectors.toList());
-
-            Set<String> changeTypePaths = new HashSet<>();
-            String serPath = TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME + "/" + CHANGE_TYPES_DIR_NAME;
-            // System.out.println("serPath: " + serPath);
-            if (new File(serPath).exists()) {
-                changeTypePaths = Files.walk(Paths.get(serPath))
-                        .filter(Files::isRegularFile)
-                        .map(Path::toAbsolutePath)
-                        .map(Path::normalize)
-                        .map(Path::toString)
-                        .collect(Collectors.toSet());
-            }
-
-            // System.out.println("changeTypePaths: " + changeTypePaths.size());
-
-            for (Path classPath : classPaths){
-                byte[] array = Files.readAllBytes(classPath);
-                ChangeTypes curChangeTypes = removeDebugInfo(array);
-
-                String changeTypePath = FileUtil.urlToObjFilePath(classPath.toUri().toURL().toExternalForm());
-                if (changeTypePath == null){
-                    continue;
-                }
-                File preChangeTypeFile = new File(changeTypePath);
-
-                if (!preChangeTypeFile.exists()){
-                    // does not exist before
-                    Set<String> methods = new HashSet<>();
-                    curChangeTypes.methodMap.keySet().forEach(m -> methods.add(curChangeTypes.curClass + "#" +
-                            m.substring(0, m.indexOf(")")+1)));
-                    curChangeTypes.constructorsMap.keySet().forEach(m -> methods.add(curChangeTypes.curClass + "#" +
-                            m.substring(0, m.indexOf(")")+1)));
-                    res.addAll(methods);
-                }else {
-                    changeTypePaths.remove(changeTypePath);
-                    ChangeTypes preChangeTypes = ChangeTypes.fromFile(changeTypePath);
-                    if (!preChangeTypes.equals(curChangeTypes)) {
-                        res.addAll(getChangedMethodsPerChangeType(preChangeTypes.methodMap,
-                                curChangeTypes.methodMap, curChangeTypes.curClass, allTests));
-                        res.addAll(getChangedMethodsPerChangeType(preChangeTypes.constructorsMap,
-                                curChangeTypes.constructorsMap, curChangeTypes.curClass, allTests));
-                    }
-                }
-            }
-
-            for(String preChangeTypePath : changeTypePaths){
-                new File(preChangeTypePath).delete();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return res;
-    }
-
 
     static Set<String> getChangedMethodsPerChangeType(TreeMap<String, String> oldMethods, TreeMap<String, String> newMethods,
                                                       String className, Set<String> allTests){

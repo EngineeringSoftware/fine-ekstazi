@@ -16,7 +16,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     private TreeMap<String, String> constructorsMap = new TreeMap<>();
     private TreeMap<String, String> instanceMethodMap = new TreeMap<>();
     private TreeMap<String, String> staticMethodMap = new TreeMap<>();
-    private TreeMap<String, String> methodMap = new TreeMap<>();
     private TreeMap<String, String> instanceFieldMap = new TreeMap<>();
     private TreeMap<String, String> staticFieldMap = new TreeMap<>();
     private HashMap<String, String> exceptionMap = new HashMap<>();
@@ -107,7 +106,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
                     if (isStatic) {
                         staticMethodMap.put(methodSignature, methodBody);
-                        methodMap.put(methodSignature, methodBody);
                     } else {
                         if (methodSignature.startsWith("<init>")) {
                             constructorsMap.put(methodSignature, sortedString(methodBody));
@@ -115,7 +113,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                             instanceMethodMap.put(methodSignature, sortedString(methodBody));
                         } else {
                             instanceMethodMap.put(methodSignature, methodBody);
-                            methodMap.put(methodSignature, methodBody);
                         }
                     }
                 }
@@ -230,7 +227,6 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         c.staticFieldMap = this.staticFieldMap;
         c.curClass = this.curClass;
         c.superClass = this.superClass;
-        c.methodMap = this.methodMap;
         c.fieldList = this.fieldList;
         return c;
     }
@@ -599,11 +595,11 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 File curTestFolder = new File(projectPath + "/target/test-classes");
 
                 if (ChangeTypes.hierarchyGraph == null) {
-                    ChangeTypes.getHierarchyGraph();
+                    ChangeTypes.initHierarchyGraph(FileUtil.listFiles(projectPath));
                     // System.out.println(ChangeTypes.hierarchyGraph);
                 }
 
-                for (String curClassPath : ChangeTypes.listFiles(curClassFolder.getAbsolutePath())) {
+                for (String curClassPath : FileUtil.listFiles(curClassFolder.getAbsolutePath())) {
                     int index = curClassPath.lastIndexOf("target/classes");
                     String fileRelativePath = curClassPath.substring(index + "target/classes/".length());
                     String preClassPath = projectPath + "/preclasses/" + fileRelativePath;
@@ -614,7 +610,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     jsonObject.put(fileRelativePath, level);
                 }
 
-                for (String curClassPath : ChangeTypes.listFiles(curTestFolder.getAbsolutePath())) {
+                for (String curClassPath : FileUtil.listFiles(curTestFolder.getAbsolutePath())) {
                     int index = curClassPath.lastIndexOf("target/test-classes");
                     String fileRelativePath = curClassPath.substring(index + "target/test-classes/".length());
                     String preClassPath = projectPath + "/pretestclasses/" + fileRelativePath;

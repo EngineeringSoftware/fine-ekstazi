@@ -30,14 +30,13 @@ import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.changelevel.Macros;
+import org.ekstazi.data.DependencyAnalyzer;
 import org.ekstazi.data.RegData;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.util.FileUtil;
 
-import static org.ekstazi.smethods.MethodLevelSelection.getChangedMethods;
 import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.*;
-import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.test2methods;
 
 abstract class AbstractCheck {
 
@@ -48,8 +47,6 @@ abstract class AbstractCheck {
     protected final Hasher mHasher;
 
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
-
-    protected static Set<String> changedMethods;
 
     protected static List<String> hotfiles;
     /**
@@ -111,53 +108,35 @@ abstract class AbstractCheck {
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
-                if (changedMethods == null) {
+                if (!DependencyAnalyzer.initGraph){
                     try {
-                        // long start = System.currentTimeMillis();
-                        List<ClassReader> classReaderList = getClassReaders(".");
-        
                         // find the methods that each method calls
-                        // long m2mStart = System.currentTimeMillis();
-                        findMethodsinvoked(classReaderList);
-                        // long m2mEnd = System.currentTimeMillis();
-                        // System.out.println("[m2m time]: " + (m2mEnd - m2mStart)/1000.0);
-                        // suppose that test classes have Test in their class name
-                        Set<String> testClasses = new HashSet<>();
-                        for (ClassReader c : classReaderList) {
-                            if (c.getClassName().contains("Test")) {
-                                testClasses.add(c.getClassName().split("\\$")[0]);
-                            }
-                        }
-                        // TODO: if finerts is on, get deps
-                        // long depsStart = System.currentTimeMillis();
-                        test2methods = getDeps(methodName2MethodNames, testClasses);
-                        saveMap(test2methods, "test2methods.txt");
-                        // // verify the results of DFS and BFS are the same
-                        // Map<String, Set<String>> test2methodsPrime = getDepsBFS(methodName2MethodNames, testClasses);
-                        // saveMap(test2methodsPrime, "test2methodsPrime.txt");
-                        // verify(test2methods, test2methodsPrime);
-                        // long depsEnd = System.currentTimeMillis();
-                        // System.out.println("[deps time]: " + (depsEnd - depsStart)/1000.0);
-        
-                        changedMethods = getChangedMethods(testClasses);
-                        // long end = System.currentTimeMillis();
-                        // System.out.println("[time for method level dependency]: " + (end - start)/1000.0);
-                    } catch (Exception e) {
+                        findMethodsinvoked(DependencyAnalyzer.newClassesPaths);                                     
+                        DependencyAnalyzer.initGraph = true;
+                    }catch (Exception e){
                         throw new RuntimeException(e);
                     }
                 }
-                //parse the url from external form to internal form
                 String urlExternalForm = el.getURLExternalForm();
                 int i = urlExternalForm.indexOf("target/classes/");
                 if (i == -1)
                     i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
                 else
-                    i = i + "target/classes/".length();
+                    i = i + + "target/classes/".length();
                 String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
-                // System.out.println("AbstractCheck.isAffected: " + internalName);
-                // System.out.println(hotfiles);
-                // System.out.println(hotfiles.contains(internalName));
+
                 if (Config.HOTFILE_ON_V){
+                    if (hotfiles == null){
+                        hotfiles = new ArrayList<>();
+                        Path path = Paths.get(Macros.HOTFILE_PATH);
+                        if (Files.exists(path)){
+                            try (Stream<String> lines = Files.lines(path)) {
+                                hotfiles = lines.collect(Collectors.toList());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                     if (!hotfiles.contains(internalName)){
                         return true;
                     }else{
@@ -174,14 +153,21 @@ abstract class AbstractCheck {
         }
 
         Set<String> mlUsedClasses = new HashSet<>();
-        Set<String> mlUsedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
+        Set<String> mlUsedMethods = getDeps(testClass);
         for (String mlUsedMethod: mlUsedMethods){
             mlUsedClasses.add(mlUsedMethod.split("#")[0]);
         }
+        // [mlUsedClasses]: [org/apache/commons/codec/digest/HmacAlgorithms, 
+        // org/apache/commons/lang3/JavaVersion, 
+        // org/apache/commons/codec/digest/HmacUtils, 
+        // org/apache/commons/codec/digest/DigestUtilsTest, 
+        // org/apache/commons/codec/digest/HmacAlgorithmsTest, 
+        // org/apache/commons/codec/binary/StringUtils, 
+        // org/apache/commons/codec/binary/Hex]
         if (mlUsedClasses.containsAll(clModifiedClasses)){
             // method level
             for (String clModifiedClass : clModifiedClasses){
-                for (String method : changedMethods){
+                for (String method : DependencyAnalyzer.changedMethods){
                     if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
                         return true;
                     }
@@ -220,6 +206,11 @@ abstract class AbstractCheck {
         boolean anyDiff = !newHash.equals(regDatum.getHash());
         // TODO: If checksum of ekstazi differs, compare ChangeTypes
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
+            if (DependencyAnalyzer.newClassesPaths.size() == 0){
+                // initalize newClassesPaths
+                DependencyAnalyzer.newClassesPaths = FileUtil.getClassPaths();
+                ChangeTypes.initHierarchyGraph(DependencyAnalyzer.newClassesPaths);
+            }
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
             Boolean changed = fileChangedCache.get(fileName);
             if (changed != null){
@@ -235,7 +226,13 @@ abstract class AbstractCheck {
                     curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(
                             new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
                     changed = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
-                    // System.out.println("[file changed]: " + fileName + " " + changed);
+                    if(Config.MRTS_ON_V){
+                        if (!DependencyAnalyzer.classesHavingChangedMethods.contains(fileName)){
+                            DependencyAnalyzer.classesHavingChangedMethods.add(fileName);
+                            Set<String> curChangedMethods = getChangedMethods(preChangeTypes, curChangeTypes);
+                            DependencyAnalyzer.changedMethods.addAll(curChangedMethods);
+                        }
+                    }
                 }
                 fileChangedCache.put(fileName, changed);
                 return changed;

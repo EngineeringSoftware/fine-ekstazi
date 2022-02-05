@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.ekstazi.Config;
-import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.changelevel.Macros;
@@ -40,7 +39,6 @@ import org.ekstazi.research.Research;
 import org.ekstazi.util.FileUtil;
 import org.ekstazi.util.LRUMap;
 
-import static org.ekstazi.smethods.MethodLevelSelection.getChangedMethods;
 import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.*;
 
 /**
@@ -81,9 +79,16 @@ public final class DependencyAnalyzer {
     /** a cache to store if the ChangeTypes changes */
     protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
-    protected static Set<String> changedMethods;
+    public static Set<String> newClassesPaths = new HashSet<>();
 
     protected static List<String> hotfiles;
+
+    public static boolean initGraph = false;
+
+    public static Set<String> classesHavingChangedMethods = new HashSet<>();
+
+    public static Set<String> changedMethods = new HashSet<>();
+
     /**
      * Constructor.
      */
@@ -311,6 +316,7 @@ public final class DependencyAnalyzer {
     }
 
     protected boolean isAffected(String testClass, Set<RegData> regData){
+        // mRTS is on
         if (regData == null || regData.size() == 0){
             return true;
         }
@@ -318,27 +324,11 @@ public final class DependencyAnalyzer {
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
-                if (changedMethods == null){
+                if (!initGraph){
                     try {
-                        // long start = System.currentTimeMillis();
-                        List<ClassReader> classReaderList = getClassReaders(".");
-        
                         // find the methods that each method calls
-                        findMethodsinvoked(classReaderList);
-        
-                        // suppose that test classes have Test in their class name
-                        Set<String> testClasses = new HashSet<>();
-                        for (ClassReader c : classReaderList){
-                            if (c.getClassName().contains("Test")){
-                                testClasses.add(c.getClassName().split("\\$")[0]);
-                            }
-                        }
-                        // TODO: instead of calculating the method graph, use the cache
-                        // test2methods = getDeps(methodName2MethodNames, testClasses);
-                        test2methods = readMap("test2methods.txt");
-                        changedMethods = getChangedMethods(testClasses);
-                        // long end = System.currentTimeMillis();
-                        // System.out.println("[DependencyAnalyzer, time for method level dependency]: " + (end - start)/1000.0);
+                        findMethodsinvoked(newClassesPaths);                                     
+                        initGraph = true;
                     }catch (Exception e){
                         throw new RuntimeException(e);
                     }
@@ -379,7 +369,7 @@ public final class DependencyAnalyzer {
         }
 
         Set<String> mlUsedClasses = new HashSet<>();
-        Set<String> mlUsedMethods = test2methods.getOrDefault(testClass, new TreeSet<>());
+        Set<String> mlUsedMethods = getDeps(testClass);
         for (String mulUsedMethod: mlUsedMethods){
             mlUsedClasses.add(mulUsedMethod.split("#")[0]);
         }
@@ -436,12 +426,15 @@ public final class DependencyAnalyzer {
         // Check hash
         String newHash = hasher.hashURL(urlExternalForm);
         modified = !newHash.equals(regDatum.getHash());
-        // TODO:
         if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
+            if (newClassesPaths.size() == 0){
+                // initalize newClassesPaths
+                newClassesPaths = FileUtil.getClassPaths();
+                ChangeTypes.initHierarchyGraph(newClassesPaths);
+            }
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
             Boolean changed = fileChangedCache.get(fileName);
             if (changed != null) {
-//                System.out.println("dependencyAnalyzer : " + changed + " " + fileName);
                 return changed;
             }
             ChangeTypes curChangeTypes;
@@ -453,6 +446,13 @@ public final class DependencyAnalyzer {
                 } else {
                     curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(curClassFile));
                     modified = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
+                    if(Config.MRTS_ON_V){
+                        if (!classesHavingChangedMethods.contains(fileName)){
+                            classesHavingChangedMethods.add(fileName);
+                            Set<String> curChangedMethods = getChangedMethods(preChangeTypes, curChangeTypes);
+                            changedMethods.addAll(curChangedMethods);
+                        }
+                    }
                 }
                 fileChangedCache.put(fileName, modified);
                 mUrlExternalForm2Modified.put(urlExternalForm, modified);
@@ -461,7 +461,6 @@ public final class DependencyAnalyzer {
                 throw new RuntimeException(e);
             }
         }
-
         mUrlExternalForm2Modified.put(urlExternalForm, modified);
         return modified;
     }
