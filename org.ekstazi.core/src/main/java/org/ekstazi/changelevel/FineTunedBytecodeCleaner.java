@@ -122,26 +122,26 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return new FineTunedMethodVisitor(mv, p, name + desc);
     }
 
-    @Override
-    public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        AnnotationVisitor av = cv.visitAnnotation(desc, visible);
-        Printer p = new CleanCodeUtil() {
-            // class annotation
-            @Override
-            public void visitAnnotationEnd() {
-                if (visible) {
-                    // todo: runtime annotation of class
-                    // StringWriter sw = new StringWriter();
-                    // print(new PrintWriter(sw));
-                    // getText().clear();
-                    // String annotation = sw.toString();
-                    // if (!annotation.equals(""))
-                    // annotations.add(annotation);
-                }
-            }
-        };
-        return new TraceAnnotationVisitor(av, p);
-    }
+    // @Override
+    // public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+    //     AnnotationVisitor av = cv.visitAnnotation(desc, visible);
+    //     Printer p = new CleanCodeUtil() {
+    //         // class annotation
+    //         @Override
+    //         public void visitAnnotationEnd() {
+    //             if (visible) {
+    //                 // todo: runtime annotation of class
+    //                 // StringWriter sw = new StringWriter();
+    //                 // print(new PrintWriter(sw));
+    //                 // getText().clear();
+    //                 // String annotation = sw.toString();
+    //                 // if (!annotation.equals(""))
+    //                 // annotations.add(annotation);
+    //             }
+    //         }
+    //     };
+    //     return new TraceAnnotationVisitor(av, p);
+    // }
 
     class FineTunedFieldVisitor extends TraceFieldVisitor {
         public FineTunedFieldVisitor(FieldVisitor fv, Printer p) {
