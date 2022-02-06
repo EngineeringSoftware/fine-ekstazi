@@ -140,10 +140,8 @@ public abstract class Storer {
         save(openFileWrite(dirName, fullName, className, methodName), regData);
 
         if(Config.FINERTS_ON_V){
-            // TODO
-            // If the directory for ChangeTypes objects do not exist, then it is first-time run.
+        // If the directory for ChangeTypes objects do not exist, then it is first-time run.
         //    long start = System.currentTimeMillis();
-
             String ctDirName = dirName + "/" + Names.CHANGE_TYPES_DIR_NAME;
             File ctDir = new File(ctDirName);
             if (!ctDir.exists()) {
@@ -168,6 +166,7 @@ public abstract class Storer {
                             fileChangedCache.put(urlExternalForm, true);
                         } catch (IOException e) {
                             e.printStackTrace();
+                            throw new RuntimeException(e);
                         }
                     }
                 }

@@ -77,7 +77,8 @@ public final class DependencyAnalyzer {
     private final boolean mDependenciesAppend;
 
     /** a cache to store if the ChangeTypes changes */
-    protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
+    public static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
+    public static HashMap<String, Boolean> methodFileChagnedCache = new HashMap<>();
 
     public static Set<String> newClassesPaths = new HashSet<>();
 
@@ -210,7 +211,6 @@ public final class DependencyAnalyzer {
     private boolean beginCoverage(String className, String methodName, boolean isRecordAffectedOutcome) {
         // Fully qualified method name.
         String fullMethodName = className + "." + methodName;
-
         // Clean previously collected coverage.
         CoverageMonitor.clean();
 
@@ -320,6 +320,10 @@ public final class DependencyAnalyzer {
         if (regData == null || regData.size() == 0){
             return true;
         }
+
+        if (methodFileChagnedCache.containsKey(testClass)){
+            return methodFileChagnedCache.get(testClass);
+        }
     
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
@@ -350,6 +354,7 @@ public final class DependencyAnalyzer {
                                 hotfiles = lines.collect(Collectors.toList());
                             } catch (IOException e) {
                                 e.printStackTrace();
+                                throw new RuntimeException(e);
                             }
                         }
                     }
@@ -365,6 +370,7 @@ public final class DependencyAnalyzer {
         }
 
         if (clModifiedClasses.size() == 0){
+            methodFileChagnedCache.put(testClass, false);
             return false;
         }
 
@@ -378,13 +384,16 @@ public final class DependencyAnalyzer {
             for (String clModifiedClass : clModifiedClasses){
                 for (String method : changedMethods){
                     if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
+                        methodFileChagnedCache.put(testClass, true);
                         return true;
                     }
                 }
             }
+            methodFileChagnedCache.put(testClass, false);
             return false;
         }else{
             // reflection
+            methodFileChagnedCache.put(testClass, true);
             return true;
         }
     }
@@ -478,6 +487,7 @@ public final class DependencyAnalyzer {
             pw.close();
         } catch (Exception ex) {
             ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 }

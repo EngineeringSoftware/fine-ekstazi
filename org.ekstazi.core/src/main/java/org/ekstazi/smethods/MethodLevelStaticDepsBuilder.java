@@ -144,7 +144,7 @@ public class MethodLevelStaticDepsBuilder{
                 classReader.accept(classToMethodsVisitor, ClassReader.SKIP_DEBUG);    
             } catch (IOException e) {
                 System.out.println("Cannot parse file: " + classPath);
-                continue;
+                throw new RuntimeException(e);
             }   
         }
         for (String classPath : classPaths){
@@ -155,7 +155,7 @@ public class MethodLevelStaticDepsBuilder{
                 classReader.accept(methodClassVisitor, ClassReader.SKIP_DEBUG);
             } catch(IOException e) {
                 System.out.println("Cannot parse file: " + classPath);
-                continue;
+                throw new RuntimeException(e);
             }
         }
 

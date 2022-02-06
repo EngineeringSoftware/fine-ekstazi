@@ -336,8 +336,12 @@ public class FileUtil {
         }
     }
 
+    private static Set<String> newClassesPaths = new HashSet<String>();
+    
     public static Set<String> getClassPaths(){
-        Set<String> newClassesPaths = new HashSet<String>();
+        if (newClassesPaths.size() > 0){
+            return newClassesPaths;
+        }
         try {
             newClassesPaths = new HashSet<>(Files.walk(Paths.get("."))
                                             .filter(Files::isRegularFile)

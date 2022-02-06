@@ -47,7 +47,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             fileIn.close();
         } catch (ClassNotFoundException | IOException e) {
             e.printStackTrace();
-            return c;
+            throw new RuntimeException(e);
         }
         return c;
     }
@@ -140,6 +140,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
             }
         }catch(Exception e){
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
         if (hierarchyGraph == null){
             hierarchyGraph = new HashMap<>();
@@ -211,5 +212,15 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
     @Override
     public int compareTo(ChangeTypes o) {
         return this.urlExternalForm.compareTo(o.urlExternalForm);
+    }
+
+    @Override
+    public String toString() {
+        return "ChangeTypes{" +
+                ", curClass='" + curClass + '\'' +
+                ", constructorsMap=" + constructorsMap +
+                ", instanceMethodsMap=" + instanceMethodMap +
+                ", staticMethodMap=" + staticMethodMap +
+                '}';
     }
 }

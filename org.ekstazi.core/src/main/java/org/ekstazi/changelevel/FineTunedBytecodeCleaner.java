@@ -1,6 +1,7 @@
 package org.ekstazi.changelevel;
 
 import org.ekstazi.asm.*;
+import org.ekstazi.hash.Hasher;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -95,24 +96,24 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                     }
                 }
                 Collections.sort(excep);
-                exceptionMap.put(name + desc, excep.toString());
+                exceptionMap.put(name + desc, hashString(excep.toString()));
 
                 if ((name + desc).equals("<clinit>()V")) {
                     // initialize static field
-                    constructorsMap.put(methodSignature, sortedString(methodBody));
-                    // todo: Finding 29, change of constructor is a method level change
-                    staticMethodMap.put(methodSignature, sortedString(methodBody));
+                    constructorsMap.put(methodSignature, hashSortedString(methodBody));
+                    // // todo: Finding 29, change of constructor is a method level change
+                    // staticMethodMap.put(methodSignature, hashSortedString(methodBody));
                 } else {
                     boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
                     if (isStatic) {
-                        staticMethodMap.put(methodSignature, methodBody);
+                        staticMethodMap.put(methodSignature, hashString(methodBody));
                     } else {
                         if (methodSignature.startsWith("<init>")) {
-                            constructorsMap.put(methodSignature, sortedString(methodBody));
-                            // todo: Finding 29, change of constructor is a method level change
-                            instanceMethodMap.put(methodSignature, sortedString(methodBody));
+                            constructorsMap.put(methodSignature, hashSortedString(methodBody));
+                            // // todo: Finding 29, change of constructor is a method level change
+                            // instanceMethodMap.put(methodSignature, hashSortedString(methodBody));
                         } else {
-                            instanceMethodMap.put(methodSignature, methodBody);
+                            instanceMethodMap.put(methodSignature, hashString(methodBody));
                         }
                     }
                 }
@@ -271,6 +272,19 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         return exceptionMap;
     }
 
+    private static String hashSortedString(String str){
+        // hashByteArray
+        byte[] bytes = str.getBytes();
+        Arrays.sort(bytes);
+        return String.valueOf(Hasher.hashString(new String(bytes)));
+        // return str.chars() // IntStream
+        //         .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+    }
+
+    private String hashString(String str){
+        return String.valueOf(Hasher.hashString(str));
+    }
+
     private String sortedString(String str) {
         return str.chars() // IntStream
                 .sorted().collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
@@ -296,7 +310,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             c = visitor.getChangeTypes();
             return c;
         } catch (Exception ex) {
-            return c;
+            throw new RuntimeException(ex);
         }
     }
 
@@ -359,8 +373,8 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
         } catch (Exception e) {
             System.err.println("Failed to execute bash with command: " + command);
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return "";
     }
 
     public static Set<String> getChangeLevel(String preClassPath, String curClassPath) {
@@ -447,6 +461,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
             } catch (IOException e) {
                 e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
         return res;
@@ -562,8 +577,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 bufferedReader = new BufferedReader(new FileReader(path));
                 shalist = gson.fromJson(bufferedReader, String[].class);
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                continue;
+                throw new RuntimeException(e);
             }
             // String sha = Macros.projectList.get(project);
             // String[] shalist = bashCommand(projectPath, "git rev-list --first-parent -n "
@@ -635,6 +649,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 Files.write(Paths.get(Macros.resultFolderPath + "/change_levels/" + filename), res.getBytes());
             } catch (Exception e) {
                 e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
     }

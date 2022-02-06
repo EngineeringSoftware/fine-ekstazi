@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.ekstazi.Config;
-import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.changelevel.Macros;
@@ -45,8 +44,6 @@ abstract class AbstractCheck {
 
     /** Hasher */
     protected final Hasher mHasher;
-
-    protected static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
 
     protected static List<String> hotfiles;
     /**
@@ -71,13 +68,15 @@ abstract class AbstractCheck {
                         hotfiles = lines.collect(Collectors.toList());
                     } catch (IOException e) {
                         e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
                 }
             }
         }
         if (Config.FINERTS_ON_V && Config.MRTS_ON_V){
             String internalClassName = className.replace(".", "/");
-            return isAffected(internalClassName, mStorer.load(dirName, className, methodName));
+            boolean affected = isAffected(internalClassName, mStorer.load(dirName, className, methodName));
+            return affected;
         }else {
             return isAffected(mStorer.load(dirName, className, methodName));
         }
@@ -103,6 +102,10 @@ abstract class AbstractCheck {
     protected boolean isAffected(String testClass, Set<RegData> regData){
         if (regData == null || regData.size() == 0){
             return true;
+        }
+
+        if (DependencyAnalyzer.methodFileChagnedCache.containsKey(testClass)){
+            return DependencyAnalyzer.methodFileChagnedCache.get(testClass);
         }
 
         Set<String> clModifiedClasses = new HashSet<>();
@@ -134,10 +137,12 @@ abstract class AbstractCheck {
                                 hotfiles = lines.collect(Collectors.toList());
                             } catch (IOException e) {
                                 e.printStackTrace();
+                                throw new RuntimeException(e);
                             }
                         }
                     }
                     if (!hotfiles.contains(internalName)){
+                        DependencyAnalyzer.methodFileChagnedCache.put(testClass, true);
                         return true;
                     }else{
                         clModifiedClasses.add(internalName);
@@ -149,6 +154,7 @@ abstract class AbstractCheck {
         }
 
         if (clModifiedClasses.size() == 0){
+            DependencyAnalyzer.methodFileChagnedCache.put(testClass, false);
             return false;
         }
 
@@ -157,25 +163,21 @@ abstract class AbstractCheck {
         for (String mlUsedMethod: mlUsedMethods){
             mlUsedClasses.add(mlUsedMethod.split("#")[0]);
         }
-        // [mlUsedClasses]: [org/apache/commons/codec/digest/HmacAlgorithms, 
-        // org/apache/commons/lang3/JavaVersion, 
-        // org/apache/commons/codec/digest/HmacUtils, 
-        // org/apache/commons/codec/digest/DigestUtilsTest, 
-        // org/apache/commons/codec/digest/HmacAlgorithmsTest, 
-        // org/apache/commons/codec/binary/StringUtils, 
-        // org/apache/commons/codec/binary/Hex]
         if (mlUsedClasses.containsAll(clModifiedClasses)){
             // method level
             for (String clModifiedClass : clModifiedClasses){
                 for (String method : DependencyAnalyzer.changedMethods){
                     if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
+                        DependencyAnalyzer.methodFileChagnedCache.put(testClass, true);
                         return true;
                     }
                 }
             }
+            DependencyAnalyzer.methodFileChagnedCache.put(testClass, false);
             return false;
         }else{
             // reflection
+            DependencyAnalyzer.methodFileChagnedCache.put(testClass, true);
             return true;
         }
     }
@@ -212,7 +214,7 @@ abstract class AbstractCheck {
                 ChangeTypes.initHierarchyGraph(DependencyAnalyzer.newClassesPaths);
             }
             String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            Boolean changed = fileChangedCache.get(fileName);
+            Boolean changed = DependencyAnalyzer.fileChangedCache.get(fileName);
             if (changed != null){
                 return changed;
             }
@@ -234,7 +236,7 @@ abstract class AbstractCheck {
                         }
                     }
                 }
-                fileChangedCache.put(fileName, changed);
+                DependencyAnalyzer.fileChangedCache.put(fileName, changed);
                 return changed;
             } catch (IOException e) {
                 throw new RuntimeException(e);
