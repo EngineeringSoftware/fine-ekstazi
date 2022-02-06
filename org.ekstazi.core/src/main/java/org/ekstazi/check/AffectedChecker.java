@@ -313,10 +313,12 @@ public class AffectedChecker {
                 prevClassName = className;
             }
         }
-        try {
-            FileUtil.saveCache(AbstractCheck.fileChangedCache, "cache.txt");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (Config.FINERTS_ON_V){
+            try {
+                FileUtil.saveCache(AbstractCheck.fileChangedCache, "cache.txt");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         classCheck.includeAffected(affectedClasses);
         covCheck.includeAffected(affectedClasses);

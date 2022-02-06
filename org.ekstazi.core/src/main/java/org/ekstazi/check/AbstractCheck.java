@@ -55,6 +55,8 @@ abstract class AbstractCheck {
     public static Set<String> classesHavingChangedMethods = new HashSet<>();
 
     public static Set<String> changedMethods = new HashSet<>();
+
+    public static boolean initClassesPath = false;
     /**
      * Constructor.
      */
@@ -217,13 +219,14 @@ abstract class AbstractCheck {
         boolean anyDiff = !newHash.equals(regDatum.getHash());
         // TODO: If checksum of ekstazi differs, compare ChangeTypes
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
-            if (newClassesPaths.size() == 0){
+            if (fileChangedCache.containsKey(urlExternalForm)){
+                return fileChangedCache.get(urlExternalForm);
+            }
+            if (!initClassesPath){
                 // initalize newClassesPaths
                 newClassesPaths = FileUtil.getClassPaths();
                 ChangeTypes.initHierarchyGraph(newClassesPaths);
-            }
-            if (fileChangedCache.containsKey(urlExternalForm)){
-                return fileChangedCache.get(urlExternalForm);
+                initClassesPath = true;
             }
             boolean changed = false;
             ChangeTypes curChangeTypes;
