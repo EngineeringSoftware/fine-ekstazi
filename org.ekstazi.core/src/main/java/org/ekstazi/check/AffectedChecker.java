@@ -31,6 +31,7 @@ import org.ekstazi.Names;
 import org.ekstazi.data.DependencyAnalyzer;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
+import org.ekstazi.util.FileUtil;
 
 /**
  * Checks all files in coverage directory based on configuration and print the
@@ -311,6 +312,11 @@ public class AffectedChecker {
                 allClasses.add(className);
                 prevClassName = className;
             }
+        }
+        try {
+            FileUtil.saveCache(AbstractCheck.fileChangedCache, "cache.txt");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         classCheck.includeAffected(affectedClasses);
         covCheck.includeAffected(affectedClasses);

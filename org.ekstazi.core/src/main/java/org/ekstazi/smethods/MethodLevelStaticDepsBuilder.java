@@ -29,44 +29,6 @@ public class MethodLevelStaticDepsBuilder{
     // for every class, find its children.
     public static Map<String, Set<String>> hierarchy_children = new HashMap<>();
 
-    public static void saveMap(Map<String, Set<String>> mapToStore, String fileName) throws Exception {
-        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
-        if (!directory.exists()) {
-            directory.mkdir();
-        }
-
-        File txtFile = new File(directory, fileName);
-        PrintWriter pw = new PrintWriter(txtFile);
-
-        for (Map.Entry<String, Set<String>> en : mapToStore.entrySet()) {
-            String methodName = en.getKey();
-            //invokedMethods saved in csv format
-            String invokedMethods = String.join(",", mapToStore.get(methodName));
-            pw.println(methodName + " " + invokedMethods);
-        }
-        pw.flush();
-        pw.close();
-    }
-
-    public static Map<String, Set<String>> readMap(String filename) throws Exception {
-        Map<String, Set<String>> map = new HashMap<>();
-        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
-        File file = new File(directory, filename);
-        BufferedReader br = new BufferedReader(new FileReader(file));
-        String line;
-        while ((line = br.readLine()) != null) {
-            String[] tokens = line.split(" ");
-            String methodName = tokens[0];
-            Set<String> invokedMethods = new HashSet<>();
-            for (String method : tokens[1].split(",")) {
-                invokedMethods.add(method);
-            }
-            map.put(methodName, invokedMethods);
-        }
-        br.close();
-        return map;    
-    }
-
     public static void saveSet(Set<String> setToStore, String fileName) throws Exception {
         // File directory = new File(".ekstazi");
         File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);

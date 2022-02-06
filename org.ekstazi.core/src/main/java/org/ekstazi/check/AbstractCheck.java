@@ -29,7 +29,6 @@ import org.ekstazi.Config;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.changelevel.Macros;
-import org.ekstazi.data.DependencyAnalyzer;
 import org.ekstazi.data.RegData;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
@@ -45,7 +44,17 @@ abstract class AbstractCheck {
     /** Hasher */
     protected final Hasher mHasher;
 
-    protected static List<String> hotfiles;
+    public static List<String> hotfiles;
+
+    public static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
+
+    public static Set<String> newClassesPaths = new HashSet<>();
+
+    public static boolean initGraph = false;
+
+    public static Set<String> classesHavingChangedMethods = new HashSet<>();
+
+    public static Set<String> changedMethods = new HashSet<>();
     /**
      * Constructor.
      */
@@ -104,18 +113,18 @@ abstract class AbstractCheck {
             return true;
         }
 
-        if (DependencyAnalyzer.methodFileChagnedCache.containsKey(testClass)){
-            return DependencyAnalyzer.methodFileChagnedCache.get(testClass);
+        if (fileChangedCache.containsKey(testClass)){
+            return fileChangedCache.get(testClass);
         }
 
         Set<String> clModifiedClasses = new HashSet<>();
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
-                if (!DependencyAnalyzer.initGraph){
+                if (!initGraph){
                     try {
                         // find the methods that each method calls
-                        findMethodsinvoked(DependencyAnalyzer.newClassesPaths);                                     
-                        DependencyAnalyzer.initGraph = true;
+                        findMethodsinvoked(newClassesPaths);                                     
+                        initGraph = true;
                     }catch (Exception e){
                         throw new RuntimeException(e);
                     }
@@ -142,7 +151,7 @@ abstract class AbstractCheck {
                         }
                     }
                     if (!hotfiles.contains(internalName)){
-                        DependencyAnalyzer.methodFileChagnedCache.put(testClass, true);
+                        fileChangedCache.put(testClass, true);
                         return true;
                     }else{
                         clModifiedClasses.add(internalName);
@@ -154,7 +163,7 @@ abstract class AbstractCheck {
         }
 
         if (clModifiedClasses.size() == 0){
-            DependencyAnalyzer.methodFileChagnedCache.put(testClass, false);
+            fileChangedCache.put(testClass, false);
             return false;
         }
 
@@ -166,18 +175,18 @@ abstract class AbstractCheck {
         if (mlUsedClasses.containsAll(clModifiedClasses)){
             // method level
             for (String clModifiedClass : clModifiedClasses){
-                for (String method : DependencyAnalyzer.changedMethods){
+                for (String method : changedMethods){
                     if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
-                        DependencyAnalyzer.methodFileChagnedCache.put(testClass, true);
+                        fileChangedCache.put(testClass, true);
                         return true;
                     }
                 }
             }
-            DependencyAnalyzer.methodFileChagnedCache.put(testClass, false);
+            fileChangedCache.put(testClass, false);
             return false;
         }else{
             // reflection
-            DependencyAnalyzer.methodFileChagnedCache.put(testClass, true);
+            fileChangedCache.put(testClass, true);
             return true;
         }
     }
@@ -208,18 +217,18 @@ abstract class AbstractCheck {
         boolean anyDiff = !newHash.equals(regDatum.getHash());
         // TODO: If checksum of ekstazi differs, compare ChangeTypes
         if (Config.FINERTS_ON_V && anyDiff && urlExternalForm.contains("target")) {
-            if (DependencyAnalyzer.newClassesPaths.size() == 0){
+            if (newClassesPaths.size() == 0){
                 // initalize newClassesPaths
-                DependencyAnalyzer.newClassesPaths = FileUtil.getClassPaths();
-                ChangeTypes.initHierarchyGraph(DependencyAnalyzer.newClassesPaths);
+                newClassesPaths = FileUtil.getClassPaths();
+                ChangeTypes.initHierarchyGraph(newClassesPaths);
             }
-            String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            Boolean changed = DependencyAnalyzer.fileChangedCache.get(fileName);
-            if (changed != null){
-                return changed;
+            if (fileChangedCache.containsKey(urlExternalForm)){
+                return fileChangedCache.get(urlExternalForm);
             }
+            boolean changed = false;
             ChangeTypes curChangeTypes;
             try {
+                String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
                 ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
                 File curClassFile = new File(urlExternalForm.substring(urlExternalForm.indexOf("/")));
                 if (!curClassFile.exists()) {
@@ -229,14 +238,14 @@ abstract class AbstractCheck {
                             new File(urlExternalForm.substring(urlExternalForm.indexOf("/")))));
                     changed = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
                     if(Config.MRTS_ON_V){
-                        if (!DependencyAnalyzer.classesHavingChangedMethods.contains(fileName)){
-                            DependencyAnalyzer.classesHavingChangedMethods.add(fileName);
+                        if (!classesHavingChangedMethods.contains(fileName)){
+                            classesHavingChangedMethods.add(fileName);
                             Set<String> curChangedMethods = getChangedMethods(preChangeTypes, curChangeTypes);
-                            DependencyAnalyzer.changedMethods.addAll(curChangedMethods);
+                            changedMethods.addAll(curChangedMethods);
                         }
                     }
                 }
-                DependencyAnalyzer.fileChangedCache.put(fileName, changed);
+                fileChangedCache.put(urlExternalForm, changed);
                 return changed;
             } catch (IOException e) {
                 throw new RuntimeException(e);

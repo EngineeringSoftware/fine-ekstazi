@@ -38,8 +38,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.CheckedInputStream;
@@ -370,5 +372,82 @@ public class FileUtil {
             e.printStackTrace();
         }
         return res;
+    }
+
+    public static void saveMap(Map<String, Set<String>> mapToStore, String fileName) throws Exception {
+        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+
+        File txtFile = new File(directory, fileName);
+        PrintWriter pw = new PrintWriter(txtFile);
+
+        for (Map.Entry<String, Set<String>> en : mapToStore.entrySet()) {
+            String methodName = en.getKey();
+            //invokedMethods saved in csv format
+            String invokedMethods = String.join(",", mapToStore.get(methodName));
+            pw.println(methodName + " " + invokedMethods);
+        }
+        pw.flush();
+        pw.close();
+    }
+
+    public static Map<String, Set<String>> readMap(String filename) throws Exception {
+        Map<String, Set<String>> map = new HashMap<>();
+        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        File file = new File(directory, filename);
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = br.readLine()) != null) {
+            String[] tokens = line.split(" ");
+            String methodName = tokens[0];
+            Set<String> invokedMethods = new HashSet<>();
+            for (String method : tokens[1].split(",")) {
+                invokedMethods.add(method);
+            }
+            map.put(methodName, invokedMethods);
+        }
+        br.close();
+        return map;    
+    }
+
+    public static void saveCache(Map<String, Boolean> mapToStore, String fileName) throws Exception {
+        File directory = new File(TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        Names.CHANGE_TYPES_DIR_NAME);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+
+        File txtFile = new File(directory, fileName);
+        PrintWriter pw = new PrintWriter(txtFile);
+
+        for (Map.Entry<String, Boolean> en : mapToStore.entrySet()) {
+            String path = en.getKey();
+            Boolean modified = en.getValue();
+            pw.println(path + " " + modified);
+        }
+        pw.flush();
+        pw.close();
+    }
+
+    public static HashMap<String, Boolean> readCache(String fileName) throws Exception {
+        HashMap<String, Boolean> map = new HashMap<>();
+        File directory = new File(TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        Names.CHANGE_TYPES_DIR_NAME);
+        File file = new File(directory, fileName);
+        if (!file.exists()){
+            return new HashMap<String, Boolean>();
+        }
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = br.readLine()) != null) {
+            String[] tokens = line.split(" ");
+            String path = tokens[0];
+            Boolean modified = Boolean.parseBoolean(tokens[1]);
+            map.put(path, modified);
+        }
+        br.close();
+        return map;    
     }
 }

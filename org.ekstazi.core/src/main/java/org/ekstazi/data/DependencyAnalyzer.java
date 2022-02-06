@@ -78,17 +78,7 @@ public final class DependencyAnalyzer {
 
     /** a cache to store if the ChangeTypes changes */
     public static HashMap<String, Boolean> fileChangedCache = new HashMap<>();
-    public static HashMap<String, Boolean> methodFileChagnedCache = new HashMap<>();
-
-    public static Set<String> newClassesPaths = new HashSet<>();
-
-    protected static List<String> hotfiles;
-
-    public static boolean initGraph = false;
-
-    public static Set<String> classesHavingChangedMethods = new HashSet<>();
-
-    public static Set<String> changedMethods = new HashSet<>();
+    public static boolean initCache = false;
 
     /**
      * Constructor.
@@ -321,81 +311,89 @@ public final class DependencyAnalyzer {
             return true;
         }
 
-        if (methodFileChagnedCache.containsKey(testClass)){
-            return methodFileChagnedCache.get(testClass);
-        }
-    
-        Set<String> clModifiedClasses = new HashSet<>();
+        // if (methodFileChagnedCache.containsKey(testClass)){
+        //     return methodFileChagnedCache.get(testClass);
+        // }  
+        // Set<String> clModifiedClasses = new HashSet<>();
+
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
-                if (!initGraph){
-                    try {
-                        // find the methods that each method calls
-                        findMethodsinvoked(newClassesPaths);                                     
-                        initGraph = true;
-                    }catch (Exception e){
-                        throw new RuntimeException(e);
-                    }
-                }
-                String urlExternalForm = el.getURLExternalForm();
-                int i = urlExternalForm.indexOf("target/classes/");
-                if (i == -1)
-                    i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
-                else
-                    i = i + + "target/classes/".length();
-                String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
-
-                if (Config.HOTFILE_ON_V){
-                    if (hotfiles == null){
-                        hotfiles = new ArrayList<>();
-                        Path path = Paths.get(Macros.HOTFILE_PATH);
-                        if (Files.exists(path)){
-                            try (Stream<String> lines = Files.lines(path)) {
-                                hotfiles = lines.collect(Collectors.toList());
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
-                    if (!hotfiles.contains(internalName)){
-                        return true;
-                    }else{
-                        clModifiedClasses.add(internalName);
-                    }
-                }else{
-                    clModifiedClasses.add(internalName);
+                if (fileChangedCache.containsKey(testClass)){
+                    return fileChangedCache.get(testClass);
                 }
             }
         }
+        return false;
+        // for (RegData el : regData) {
+        //     if (hasHashChanged(mHasher, el)) {
+        //         if (!initGraph){
+        //             try {
+        //                 // find the methods that each method calls
+        //                 findMethodsinvoked(newClassesPaths);                                     
+        //                 initGraph = true;
+        //             }catch (Exception e){
+        //                 throw new RuntimeException(e);
+        //             }
+        //         }
+        //         String urlExternalForm = el.getURLExternalForm();
+        //         int i = urlExternalForm.indexOf("target/classes/");
+        //         if (i == -1)
+        //             i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
+        //         else
+        //             i = i + + "target/classes/".length();
+        //         String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
 
-        if (clModifiedClasses.size() == 0){
-            methodFileChagnedCache.put(testClass, false);
-            return false;
-        }
+        //         if (Config.HOTFILE_ON_V){
+        //             if (hotfiles == null){
+        //                 hotfiles = new ArrayList<>();
+        //                 Path path = Paths.get(Macros.HOTFILE_PATH);
+        //                 if (Files.exists(path)){
+        //                     try (Stream<String> lines = Files.lines(path)) {
+        //                         hotfiles = lines.collect(Collectors.toList());
+        //                     } catch (IOException e) {
+        //                         e.printStackTrace();
+        //                         throw new RuntimeException(e);
+        //                     }
+        //                 }
+        //             }
+        //             if (!hotfiles.contains(internalName)){
+        //                 return true;
+        //             }else{
+        //                 clModifiedClasses.add(internalName);
+        //             }
+        //         }else{
+        //             clModifiedClasses.add(internalName);
+        //         }
+        //     }
+        // }
 
-        Set<String> mlUsedClasses = new HashSet<>();
-        Set<String> mlUsedMethods = getDeps(testClass);
-        for (String mulUsedMethod: mlUsedMethods){
-            mlUsedClasses.add(mulUsedMethod.split("#")[0]);
-        }
-        if (mlUsedClasses.containsAll(clModifiedClasses)){
-            // method level
-            for (String clModifiedClass : clModifiedClasses){
-                for (String method : changedMethods){
-                    if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
-                        methodFileChagnedCache.put(testClass, true);
-                        return true;
-                    }
-                }
-            }
-            methodFileChagnedCache.put(testClass, false);
-            return false;
-        }else{
-            // reflection
-            methodFileChagnedCache.put(testClass, true);
-            return true;
-        }
+        // if (clModifiedClasses.size() == 0){
+        //     methodFileChagnedCache.put(testClass, false);
+        //     return false;
+        // }
+
+        // Set<String> mlUsedClasses = new HashSet<>();
+        // Set<String> mlUsedMethods = getDeps(testClass);
+        // for (String mulUsedMethod: mlUsedMethods){
+        //     mlUsedClasses.add(mulUsedMethod.split("#")[0]);
+        // }
+        // if (mlUsedClasses.containsAll(clModifiedClasses)){
+        //     // method level
+        //     for (String clModifiedClass : clModifiedClasses){
+        //         for (String method : changedMethods){
+        //             if (method.startsWith(clModifiedClass) && mlUsedMethods.contains(method)){
+        //                 methodFileChagnedCache.put(testClass, true);
+        //                 return true;
+        //             }
+        //         }
+        //     }
+        //     methodFileChagnedCache.put(testClass, false);
+        //     return false;
+        // }else{
+        //     // reflection
+        //     methodFileChagnedCache.put(testClass, true);
+        //     return true;
+        // }
     }
 
     /**
@@ -436,40 +434,57 @@ public final class DependencyAnalyzer {
         String newHash = hasher.hashURL(urlExternalForm);
         modified = !newHash.equals(regDatum.getHash());
         if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
-            if (newClassesPaths.size() == 0){
-                // initalize newClassesPaths
-                newClassesPaths = FileUtil.getClassPaths();
-                ChangeTypes.initHierarchyGraph(newClassesPaths);
-            }
-            String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
-            Boolean changed = fileChangedCache.get(fileName);
-            if (changed != null) {
-                return changed;
-            }
-            ChangeTypes curChangeTypes;
-            try {
-                ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
-                File curClassFile = new File(urlExternalForm.substring(urlExternalForm.indexOf("/")));
-                if (!curClassFile.exists()) {
-                    modified = true;
-                } else {
-                    curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(curClassFile));
-                    modified = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
-                    if(Config.MRTS_ON_V){
-                        if (!classesHavingChangedMethods.contains(fileName)){
-                            classesHavingChangedMethods.add(fileName);
-                            Set<String> curChangedMethods = getChangedMethods(preChangeTypes, curChangeTypes);
-                            changedMethods.addAll(curChangedMethods);
-                        }
-                    }
+            if (!initCache){
+                //init fileChangedCache
+                try {
+                    fileChangedCache = FileUtil.readCache("cache.txt");
+                    initCache = true;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-                fileChangedCache.put(fileName, modified);
-                mUrlExternalForm2Modified.put(urlExternalForm, modified);
-                return modified;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            }
+            if (fileChangedCache.containsKey(urlExternalForm)){
+                return fileChangedCache.get(urlExternalForm);
             }
         }
+        // if (Config.FINERTS_ON_V && modified && urlExternalForm.contains("target")) {
+        //     if (fileChangedCache.size() == 0){
+        //         // init file changed cache
+        //     }
+        //     if (newClassesPaths.size() == 0){
+        //         // initalize newClassesPaths
+        //         newClassesPaths = FileUtil.getClassPaths();
+        //         ChangeTypes.initHierarchyGraph(newClassesPaths);
+        //     }
+        //     String fileName = FileUtil.urlToObjFilePath(urlExternalForm);
+        //     Boolean changed = fileChangedCache.get(fileName);
+        //     if (changed != null) {
+        //         return changed;
+        //     }
+        //     ChangeTypes curChangeTypes;
+        //     try {
+        //         ChangeTypes preChangeTypes = ChangeTypes.fromFile(fileName);
+        //         File curClassFile = new File(urlExternalForm.substring(urlExternalForm.indexOf("/")));
+        //         if (!curClassFile.exists()) {
+        //             modified = true;
+        //         } else {
+        //             curChangeTypes = FineTunedBytecodeCleaner.removeDebugInfo(FileUtil.readFile(curClassFile));
+        //             modified = preChangeTypes == null || !preChangeTypes.equals(curChangeTypes);
+        //             if(Config.MRTS_ON_V){
+        //                 if (!classesHavingChangedMethods.contains(fileName)){
+        //                     classesHavingChangedMethods.add(fileName);
+        //                     Set<String> curChangedMethods = getChangedMethods(preChangeTypes, curChangeTypes);
+        //                     changedMethods.addAll(curChangedMethods);
+        //                 }
+        //             }
+        //         }
+        //         fileChangedCache.put(fileName, modified);
+        //         mUrlExternalForm2Modified.put(urlExternalForm, modified);
+        //         return modified;
+        //     } catch (IOException e) {
+        //         throw new RuntimeException(e);
+        //     }
+        // }
         mUrlExternalForm2Modified.put(urlExternalForm, modified);
         return modified;
     }
