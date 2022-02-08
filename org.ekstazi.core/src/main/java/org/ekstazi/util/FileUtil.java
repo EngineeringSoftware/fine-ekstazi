@@ -49,7 +49,6 @@ import java.util.zip.Checksum;
 
 import org.ekstazi.Names;
 import org.ekstazi.log.Log;
-import static org.ekstazi.smethods.Macros.*;
 /**
  * Utility methods for manipulating files.
  */
@@ -73,7 +72,7 @@ public class FileUtil {
             sb.append(".");
         }
         sb.append("ser");
-        return TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        return Names.TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
                 Names.CHANGE_TYPES_DIR_NAME + "/" + sb.toString();
         // return System.getProperty("user.dir") + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
         //         Names.CHANGE_TYPES_DIR_NAME + "/" + sb.toString();
@@ -374,8 +373,9 @@ public class FileUtil {
         return res;
     }
 
-    public static void saveMap(Map<String, Set<String>> mapToStore, String fileName) throws Exception {
-        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+    public static void saveMap(Map<String, Set<String>> mapToStore, String dirName, String fileName) throws Exception {
+        File directory = new File(Names.TEST_PROJECT_PATH + "/" + dirName + "/" + 
+        Names.CHANGE_TYPES_DIR_NAME);
         if (!directory.exists()) {
             directory.mkdir();
         }
@@ -393,9 +393,10 @@ public class FileUtil {
         pw.close();
     }
 
-    public static Map<String, Set<String>> readMap(String filename) throws Exception {
+    public static Map<String, Set<String>> readMap(String dirname, String filename) throws Exception {
         Map<String, Set<String>> map = new HashMap<>();
-        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        File directory = new File(Names.TEST_PROJECT_PATH + "/" + dirname + "/" + 
+        Names.CHANGE_TYPES_DIR_NAME);
         File file = new File(directory, filename);
         BufferedReader br = new BufferedReader(new FileReader(file));
         String line;
@@ -412,8 +413,8 @@ public class FileUtil {
         return map;    
     }
 
-    public static void saveCache(Map<String, Boolean> mapToStore, String fileName) throws Exception {
-        File directory = new File(TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+    public static void saveCache(Map<String, Boolean> mapToStore, String dirName, String fileName) throws Exception {
+        File directory = new File(Names.TEST_PROJECT_PATH + "/" + dirName + "/" +
         Names.CHANGE_TYPES_DIR_NAME);
         if (!directory.exists()) {
             directory.mkdir();
@@ -431,9 +432,9 @@ public class FileUtil {
         pw.close();
     }
 
-    public static HashMap<String, Boolean> readCache(String fileName) throws Exception {
+    public static HashMap<String, Boolean> readCache(String dirName, String fileName) throws Exception {
         HashMap<String, Boolean> map = new HashMap<>();
-        File directory = new File(TEST_PROJECT_PATH + "/" + Names.EKSTAZI_ROOT_DIR_NAME + "/" +
+        File directory = new File(Names.TEST_PROJECT_PATH + "/" + dirName + "/" +
         Names.CHANGE_TYPES_DIR_NAME);
         File file = new File(directory, fileName);
         if (!file.exists()){

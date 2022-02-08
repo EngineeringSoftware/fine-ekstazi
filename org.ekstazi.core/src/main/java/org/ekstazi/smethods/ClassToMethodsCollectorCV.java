@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.ekstazi.smethods.Macros.PROJECT_PACKAGE;
+import static org.ekstazi.Names.PROJECT_PACKAGE;
 
 public class ClassToMethodsCollectorCV extends ClassVisitor {
 

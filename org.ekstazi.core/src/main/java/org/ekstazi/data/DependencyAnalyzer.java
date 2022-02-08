@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.ekstazi.Config;
+import org.ekstazi.Names;
 import org.ekstazi.changelevel.ChangeTypes;
 import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
 import org.ekstazi.changelevel.Macros;
@@ -437,7 +438,7 @@ public final class DependencyAnalyzer {
             if (!initCache){
                 //init fileChangedCache
                 try {
-                    fileChangedCache = FileUtil.readCache("cache.txt");
+                    fileChangedCache = FileUtil.readCache(Names.EKSTAZI_ROOT_DIR_NAME, "cache.txt");
                     initCache = true;
                 } catch (Exception e) {
                     throw new RuntimeException(e);

@@ -28,6 +28,8 @@ public final class Names {
     public static final String EKSTAZI_CONFIG_FILE = ".ekstazirc";
     public static final String EKSTAZI_ROOT_DIR_NAME = ".ekstazi";
     public static final String CHANGE_TYPES_DIR_NAME = "sers";
+    public static String TEST_PROJECT_PATH = System.getProperty("user.dir");
+    public static final String PROJECT_PACKAGE = "org/ekstazi/smethods/";
 
     /** Directory (inside root directory) for test results */
     public static final String TEST_RESULTS_DIR_NAME = "test-results";

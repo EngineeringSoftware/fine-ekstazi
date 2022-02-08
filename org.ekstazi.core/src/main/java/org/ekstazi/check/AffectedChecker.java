@@ -315,7 +315,7 @@ public class AffectedChecker {
         }
         if (Config.FINERTS_ON_V){
             try {
-                FileUtil.saveCache(AbstractCheck.fileChangedCache, "cache.txt");
+                FileUtil.saveCache(AbstractCheck.fileChangedCache, Names.EKSTAZI_ROOT_DIR_NAME, "cache.txt");
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

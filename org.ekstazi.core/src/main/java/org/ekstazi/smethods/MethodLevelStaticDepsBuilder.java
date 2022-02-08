@@ -1,9 +1,7 @@
 package org.ekstazi.smethods;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
@@ -29,9 +27,9 @@ public class MethodLevelStaticDepsBuilder{
     // for every class, find its children.
     public static Map<String, Set<String>> hierarchy_children = new HashMap<>();
 
-    public static void saveSet(Set<String> setToStore, String fileName) throws Exception {
+    public static void saveSet(Set<String> setToStore, String dirName, String fileName) throws Exception {
         // File directory = new File(".ekstazi");
-        File directory = new File(TEST_PROJECT_PATH + "/" + EKSTAZI_ROOT_DIR_NAME);
+        File directory = new File(TEST_PROJECT_PATH + "/" + dirName);
         if (!directory.exists()) {
             directory.mkdir();
         }

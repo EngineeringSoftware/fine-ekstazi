@@ -1,5 +1,6 @@
 package org.ekstazi.smethods;
 
+import org.ekstazi.Names;
 import org.ekstazi.asm.ClassVisitor;
 import org.ekstazi.asm.MethodVisitor;
 import org.ekstazi.asm.Opcodes;
@@ -8,8 +9,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-import static org.ekstazi.smethods.Macros.PROJECT_PACKAGE;
 
 public class MethodCallCollectorCV extends ClassVisitor {
 
@@ -57,7 +56,7 @@ public class MethodCallCollectorCV extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, final String outerName, final String outerDesc, String signature, String[] exceptions) {
         //append arguments to key, remove what after ) of desc
-        if (outerName.equals(PROJECT_PACKAGE)){
+        if (outerName.equals(Names.PROJECT_PACKAGE)){
             return null;
         }
         String outerMethodSig = outerName + outerDesc.substring(0, outerDesc.indexOf(")")+1);
