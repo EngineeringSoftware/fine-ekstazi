@@ -13,8 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ekstazi.asm.ClassReader;
 import org.ekstazi.changelevel.ChangeTypes;
-
-import static org.ekstazi.smethods.Macros.*;
+import org.ekstazi.Names;
 public class MethodLevelStaticDepsBuilder{
     // mvn exec:java -Dexec.mainClass=org.sekstazi.smethods.MethodLevelStaticDepsBuilder -Dmyproperty=/Users/liuyu/projects/finertsTest
 
@@ -29,7 +28,7 @@ public class MethodLevelStaticDepsBuilder{
 
     public static void saveSet(Set<String> setToStore, String dirName, String fileName) throws Exception {
         // File directory = new File(".ekstazi");
-        File directory = new File(TEST_PROJECT_PATH + "/" + dirName);
+        File directory = new File(Names.TEST_PROJECT_PATH + "/" + dirName);
         if (!directory.exists()) {
             directory.mkdir();
         }
