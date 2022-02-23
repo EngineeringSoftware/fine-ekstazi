@@ -12,13 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.ekstazi.Config;
 
 import java.nio.file.Paths;
 import static java.util.Collections.reverseOrder;
-import org.ekstazi.data.DependencyAnalyzer;
 
 public class HotFileHelper {
 
@@ -28,7 +26,6 @@ public class HotFileHelper {
     public static List<String> hotFiles;
 
     public static List<String> getHotFiles(String hotFileType, String percentage) {
-        System.out.println("Getting hot files for " + hotFileType + " with percentage " + percentage);
         List<String> hotFiles = new ArrayList<>();
         if (hotFileType.equals(DEP_HOTFILE)) {
             File depsDir = new File(Config.ROOT_DIR_V);
@@ -56,7 +53,6 @@ public class HotFileHelper {
                         } 
                     }
                 }
-                System.out.println("fileToDeps: " + fileToDeps);
                 return sortAndExtract(fileToDeps, percentage);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -88,10 +84,8 @@ public class HotFileHelper {
                     }
                 }
                 b.close();
-                System.out.println("fileToFreq: " + fileToFreq);
                 return sortAndExtract(fileToFreq, percentage);
             } catch (Exception e) {
-                System.out.println("Failed to execute bash with command: " + command);
                 throw new RuntimeException(e);
             }
         } else if (hotFileType.equals(SIZE_HOTFILE)) {
@@ -108,7 +102,6 @@ public class HotFileHelper {
                                 fileToSize.put("file:" + classFile.toPath().normalize().toAbsolutePath().toString(), classFile.length());
                             }
                         });
-                System.out.println("fileToSize: " + fileToSize);
                 return sortAndExtract(fileToSize, percentage);
             } catch (IOException e) {
                 e.printStackTrace();

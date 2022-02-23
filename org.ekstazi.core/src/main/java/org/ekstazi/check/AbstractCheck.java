@@ -81,10 +81,11 @@ abstract class AbstractCheck {
                         hotfiles = HotFileHelper.getHotFiles(Config.HOTFILE_TYPE_V, Config.HOTFILE_PERCENT_V);
                     }
                     if (Config.HOTFILE_TYPE_V.equals(HotFileHelper.CHANGE_FRE_HOTFILE)){
-                        if (className.contains("\\$")){
-                            className = className.substring(0, className.indexOf("\\$"));
+                        String clzName = urlExternalForm.substring(0, urlExternalForm.length() - ".class".length());
+                        if (urlExternalForm.contains("$")){
+                            clzName = clzName.substring(0, clzName.indexOf("$"));
                         }
-                        String[] splittedClassNames = className.split("\\.");
+                        String[] splittedClassNames = clzName.split("/");
                         if (!hotfiles.contains(splittedClassNames[splittedClassNames.length - 1])){
                             String testClass = className.replace(".", "/");
                             fileChangedCache.put(testClass, true);
