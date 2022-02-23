@@ -32,7 +32,6 @@ import org.ekstazi.data.DependencyAnalyzer;
 import org.ekstazi.data.Storer;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.util.FileUtil;
-
 /**
  * Checks all files in coverage directory based on configuration and print the
  * list of classes that are NOT affected. Note the following:
@@ -214,7 +213,7 @@ public class AffectedChecker {
         return coverageDir == null || !coverageDir.exists();
     }
 
-    private static List<File> getSortedFiles(File coverageDir) {
+    public static List<File> getSortedFiles(File coverageDir) {
         List<File> sortedFiles = new ArrayList<File>();
         File[] files = coverageDir.listFiles(new FilenameFilter() {
             public boolean accept(File dir, String name) {

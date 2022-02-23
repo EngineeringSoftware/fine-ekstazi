@@ -71,15 +71,31 @@ abstract class AbstractCheck {
 
     protected boolean isAffected(String dirName, String className, String methodName) {
         if (Config.HOTFILE_ON_V){
-            if (hotfiles == null){
-                hotfiles = new ArrayList<>();
-                Path path = Paths.get(Macros.HOTFILE_PATH);
-                if (Files.exists(path)){
-                    try (Stream<String> lines = Files.lines(path)) {
-                        hotfiles = lines.collect(Collectors.toList());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
+            for (RegData el : mStorer.load(dirName, className, methodName)){
+                String urlExternalForm = el.getURLExternalForm();
+                // Check hash.
+                String newHash = mHasher.hashURL(urlExternalForm);
+                boolean anyDiff = !newHash.equals(el.getHash());
+                if (anyDiff) {
+                    if (hotfiles == null){
+                        hotfiles = HotFileHelper.getHotFiles(Config.HOTFILE_TYPE_V, Config.HOTFILE_PERCENT_V);
+                    }
+                    if (Config.HOTFILE_TYPE_V.equals(HotFileHelper.CHANGE_FRE_HOTFILE)){
+                        if (className.contains("\\$")){
+                            className = className.substring(0, className.indexOf("\\$"));
+                        }
+                        String[] splittedClassNames = className.split("\\.");
+                        if (!hotfiles.contains(splittedClassNames[splittedClassNames.length - 1])){
+                            String testClass = className.replace(".", "/");
+                            fileChangedCache.put(testClass, true);
+                            return true;
+                        }
+                    }else{
+                        if (!hotfiles.contains(urlExternalForm)){
+                            String testClass = className.replace(".", "/");
+                            fileChangedCache.put(testClass, true);
+                            return true;
+                        }
                     }
                 }
             }
@@ -120,6 +136,7 @@ abstract class AbstractCheck {
         }
 
         Set<String> clModifiedClasses = new HashSet<>();
+
         for (RegData el : regData) {
             if (hasHashChanged(mHasher, el)) {
                 if (!initGraph){
@@ -132,36 +149,16 @@ abstract class AbstractCheck {
                     }
                 }
                 String urlExternalForm = el.getURLExternalForm();
-                int i = urlExternalForm.indexOf("target/classes/");
-                if (i == -1)
+                int i = 0;
+                if (urlExternalForm.contains("target/classes/")){
+                    i = urlExternalForm.indexOf("target/classes/") + "target/classes/".length();
+                }else if (urlExternalForm.contains("target/test-classes/")){
                     i = urlExternalForm.indexOf("target/test-classes/") + "target/test-classes/".length();
-                else
-                    i = i + + "target/classes/".length();
-                String internalName = urlExternalForm.substring(i, urlExternalForm.length()-6);
-
-                if (Config.HOTFILE_ON_V){
-                    if (hotfiles == null){
-                        hotfiles = new ArrayList<>();
-                        Path path = Paths.get(Macros.HOTFILE_PATH);
-                        if (Files.exists(path)){
-                            try (Stream<String> lines = Files.lines(path)) {
-                                hotfiles = lines.collect(Collectors.toList());
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }
-                    if (!hotfiles.contains(internalName)){
-                        fileChangedCache.put(testClass, true);
-                        return true;
-                    }else{
-                        clModifiedClasses.add(internalName);
-                    }
-                }else{
-                    clModifiedClasses.add(internalName);
                 }
+                String internalName = urlExternalForm.substring(i, urlExternalForm.length()-".class".length()); 
+                clModifiedClasses.add(internalName);        
             }
+            
         }
 
         if (clModifiedClasses.size() == 0){
@@ -222,6 +219,7 @@ abstract class AbstractCheck {
             if (fileChangedCache.containsKey(urlExternalForm)){
                 return fileChangedCache.get(urlExternalForm);
             }
+
             if (!initClassesPath){
                 // initalize newClassesPaths
                 newClassesPaths = FileUtil.getClassPaths();

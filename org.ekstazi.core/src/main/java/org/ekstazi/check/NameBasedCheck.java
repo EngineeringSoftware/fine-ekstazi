@@ -63,7 +63,7 @@ class NameBasedCheck extends AbstractCheck {
      * @return Original string if extension is not present, string without
      *         [.]extension otherwise
      */
-    protected static String removeExtension(String str, String ext) {
+    public static String removeExtension(String str, String ext) {
         if (!str.endsWith(ext)) {
             return str;
         }

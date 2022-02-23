@@ -210,6 +210,14 @@ public final class Config {
     public static boolean HOTFILE_ON_V = false;
     protected static final String HOTFILE_ON_N  = "hotfile";
 
+    @Opt(desc = "hotfile type")
+    public static String HOTFILE_TYPE_V = "size";
+    protected static final String HOTFILE_TYPE_N  = "hotfiletype";
+
+    @Opt(desc = "hotfile percent")
+    public static String HOTFILE_PERCENT_V = "35";
+    protected static final String HOTFILE_PERCENT_N  = "hotfilepercent";
+
     @Opt(desc = "Debug mode")
     public static DebugMode DEBUG_MODE_V = DebugMode.NONE;
     protected static String DEBUG_MODE_N = "debug.mode";
@@ -371,6 +379,8 @@ public final class Config {
         FINERTS_ON_V = getBoolean(props, FINERTS_ON_N, FINERTS_ON_V);
         MRTS_ON_V = getBoolean(props, MRTS_ON_N, MRTS_ON_V);
         HOTFILE_ON_V = getBoolean(props, HOTFILE_ON_N, HOTFILE_ON_V);
+        HOTFILE_TYPE_V = getString(props, HOTFILE_TYPE_N, HOTFILE_TYPE_V);
+        HOTFILE_PERCENT_V = getString(props, HOTFILE_PERCENT_N, HOTFILE_PERCENT_V);
         DEBUG_V = getBoolean(props, DEBUG_N, DEBUG_V);
         DEBUG_MODE_V = DebugMode.fromString(getString(props, DEBUG_MODE_N, DEBUG_MODE_V.toString()));
         CACHE_SIZES_V = getInteger(props, CACHE_SIZES_N, CACHE_SIZES_V);
