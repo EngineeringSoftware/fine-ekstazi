@@ -30,17 +30,12 @@ import java.util.stream.Stream;
 
 import org.ekstazi.Config;
 import org.ekstazi.Names;
-import org.ekstazi.changelevel.ChangeTypes;
-import org.ekstazi.changelevel.FineTunedBytecodeCleaner;
-import org.ekstazi.changelevel.Macros;
 import org.ekstazi.hash.Hasher;
 import org.ekstazi.log.Log;
 import org.ekstazi.monitor.CoverageMonitor;
 import org.ekstazi.research.Research;
 import org.ekstazi.util.FileUtil;
 import org.ekstazi.util.LRUMap;
-
-import static org.ekstazi.smethods.MethodLevelStaticDepsBuilder.*;
 
 /**
  * Analyzes regression data to check if resource has been modified.

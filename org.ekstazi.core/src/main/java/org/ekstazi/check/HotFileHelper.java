@@ -2,6 +2,7 @@ package org.ekstazi.check;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -11,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.ekstazi.Config;
@@ -61,14 +63,18 @@ public class HotFileHelper {
         } else if (hotFileType.equals(CHANGE_FRE_HOTFILE)) {
             HashMap<String, Long> fileToFreq = new HashMap<>();
             int numOfCommits = 50;
-            String command = "git log -" + String.valueOf(numOfCommits) + " --name-only --format=\"\"";
+            String command = "git log -" + String.valueOf(numOfCommits) + " --name-only --format=\"\" > gitlog.txt";
             Runtime r = Runtime.getRuntime();
             String[] commands = {"bash", "-c", command};
+            String[] removeLogCommands = {"bash", "-c", "rm gitlog.txt"};
             try {
                 Process p = r.exec(commands);
-        
-                p.waitFor();
-                BufferedReader b = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                if(!p.waitFor(5, TimeUnit.SECONDS)) {
+                    //timeout - kill the process. 
+                    p.destroy();
+                    return hotFiles;
+                }
+                BufferedReader b = new BufferedReader(new InputStreamReader(new FileInputStream("gitlog.txt")));
                 String line = "";
         
                 while ((line = b.readLine()) != null) {
@@ -84,6 +90,7 @@ public class HotFileHelper {
                     }
                 }
                 b.close();
+                r.exec(removeLogCommands);
                 return sortAndExtract(fileToFreq, percentage);
             } catch (Exception e) {
                 throw new RuntimeException(e);
