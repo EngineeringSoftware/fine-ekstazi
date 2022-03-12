@@ -545,7 +545,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
 
     // this method is used to classify change levels automatically
     public static void main(String[] args) {
-        for (String project : Macros.projectList.keySet()) {
+        for (String project : Macros.projectList) {
             String folderName = Macros.projectFolderPath + "/" + "_downloads";
             File folder = new File(folderName);
             if (!folder.isDirectory()) {
