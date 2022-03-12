@@ -1,17 +1,35 @@
 package org.ekstazi.changelevel;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Macros {
-    static HashMap<String, String> projectList = new HashMap<>();
+    static List<String> projectList = new ArrayList<>();
     static {
-        // projectList.put("apache/commons-beanutils", "893b769d");
-        // projectList.put("apache/commons-codec", "24059898");
-        // projectList.put("apache/commons-compress", "dfa9ed37");
-        // projectList.put("apache/commons-pool", "b6775ade");
-        projectList.put("alibaba/fastjson", "4c516b12");
-        // projectList.put("apache/commons-email", "4f45556f");
-        // projectList.put("apache/commons-math", "649b134f");
+        projectList.add("apache_commons-imaging");
+        projectList.add("apache_commons-lang");
+        projectList.add("apache_commons-collections");
+        projectList.add("asterisk-java_asterisk-java");
+        projectList.add("apache_commons-codec");
+        projectList.add("apache_commons-configuration");
+        projectList.add("apache_commons-compress");
+        projectList.add("sonyxperiadev_gerrit-events");
+        projectList.add("tabulapdf_tabula-java");
+        projectList.add("alibaba_fastjson");
+        projectList.add("apache_commons-math");
+        projectList.add("apache_commons-net");
+        projectList.add("apache_commons-beanutils");
+        projectList.add("davidmoten_rxjava-extras");
+        projectList.add("apache_commons-dbcp");
+        projectList.add("apache_commons-io");
+        projectList.add("brettwooldridge_HikariCP");
+        projectList.add("bullhorn_sdk-rest");
+        projectList.add("jenkinsci_email-ext-plugin");
+        projectList.add("apache_commons-pool");
+        projectList.add("logic-ng_LogicNG");
+        projectList.add("finmath_finmath-lib");
+        projectList.add("lmdbjava_lmdbjava");
     }
     static String home = System.getProperty("user.home");
     static String projectFolder = "projects/ctaxonomy";
