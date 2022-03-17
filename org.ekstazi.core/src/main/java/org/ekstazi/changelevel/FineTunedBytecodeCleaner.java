@@ -349,6 +349,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     static String CHANGE_SIGNATURE = "change_signature";
     static String METHOD = "method";
     static String OTHER = "other";
+    static String NOCHANGE = "nochange";
 
     // invoke bash in java
     public static String bashCommand(String path, String command) {
@@ -464,6 +465,9 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
                 throw new RuntimeException(e);
             }
         }
+        if (res.size() == 0) {
+            res.add(NOCHANGE);
+        }
         return res;
     }
 
@@ -544,6 +548,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
     }
 
     // this method is used to classify change levels automatically
+    // in folderorg.ekstazi.core: mvn exec:java -Dexec.mainClass="org.ekstazi.changelevel.FineTunedBytecodeCleaner"
     public static void main(String[] args) {
         for (String project : Macros.projectList) {
             String folderName = Macros.projectFolderPath + "/" + "_downloads";
@@ -587,6 +592,7 @@ public class FineTunedBytecodeCleaner extends ClassVisitor {
             for (int i = 1; i < shalist.length; i++) {
                 Map<String, Set<String>> jsonObject = new LinkedHashMap<>();
                 String curSHA = shalist[i];
+                System.out.println(curSHA);
                 // compare the difference of previous class file and current class file
                 bashCommand(projectPath, "git checkout " + preSHA);
                 String preCompileResult = bashCommand(projectPath, "mvn test-compile -Drat.skip");

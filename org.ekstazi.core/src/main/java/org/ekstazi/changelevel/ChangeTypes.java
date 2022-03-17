@@ -179,7 +179,7 @@ public class ChangeTypes implements Serializable, Comparable<ChangeTypes>{
                     oldMethods.remove(sig);
                     newMethods.remove(sig);
                 }else{
-                    // different sig
+                    // different body
                     return true;
                 }
             } else if (oldMethods.containsKey(sig) && newMethods.containsValue(oldMethods.get(sig))){
